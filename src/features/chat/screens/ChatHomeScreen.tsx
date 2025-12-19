@@ -17,14 +17,24 @@ type ChatMessage = {
   text: string;
 };
 
+const QUICK_PROMPTS = [
+  '我最近睡不好，容易焦虑。',
+  '我学习压力很大，总觉得赶不上。',
+  '我情绪有点低落，不知道怎么调整。',
+  '我在人际关系里有点内耗。',
+] as const;
+
 function id() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
 export function ChatHomeScreen({ navigation }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    { id: id(), role: 'assistant', text: '你好，我在。你可以先说说今天发生了什么。' },
-  ]);
+  const initialMessages = useMemo<ChatMessage[]>(
+    () => [{ id: id(), role: 'assistant', text: '你好，我在。你可以先说说今天发生了什么。' }],
+    [],
+  );
+
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
 
   const lastHint = useMemo(() => {
@@ -33,8 +43,8 @@ export function ChatHomeScreen({ navigation }: Props) {
     return last.role === 'assistant' ? '可以继续补充细节' : '我正在理解…';
   }, [messages]);
 
-  const send = () => {
-    const text = input.trim();
+  const sendText = (raw: string) => {
+    const text = raw.trim();
     if (!text) return;
 
     setMessages((prev) => {
@@ -46,6 +56,23 @@ export function ChatHomeScreen({ navigation }: Props) {
       const assistantMessage: ChatMessage = { id: id(), role: 'assistant', text: reply };
       return [...prev, userMessage, assistantMessage];
     });
+  };
+
+  const send = () => {
+    sendText(input);
+    setInput('');
+  };
+
+  const applyPrompt = (p: string) => {
+    setInput(p);
+  };
+
+  const sendPrompt = (p: string) => {
+    sendText(p);
+  };
+
+  const resetChat = () => {
+    setMessages(initialMessages);
     setInput('');
   };
 
@@ -73,6 +100,30 @@ export function ChatHomeScreen({ navigation }: Props) {
             onPress={() => navigation.navigate('VoiceChat')}
             style={styles.flex}
           />
+        </View>
+        <View style={styles.row}>
+          <PrimaryButton title="清空对话" variant="ghost" onPress={resetChat} style={styles.flex} />
+          <PrimaryButton
+            title="填充示例"
+            variant="ghost"
+            onPress={() => applyPrompt(QUICK_PROMPTS[0])}
+            style={styles.flex}
+          />
+        </View>
+      </Card>
+
+      <Card>
+        <Text style={styles.sectionTitle}>快捷问题</Text>
+        <View style={styles.promptList}>
+          {QUICK_PROMPTS.map((p) => (
+            <View key={p} style={styles.promptRow}>
+              <PrimaryButton title="填入" variant="ghost" onPress={() => applyPrompt(p)} />
+              <PrimaryButton title="发送" onPress={() => sendPrompt(p)} />
+              <View style={styles.promptTextWrap}>
+                <Text style={styles.promptText}>{p}</Text>
+              </View>
+            </View>
+          ))}
         </View>
       </Card>
 
@@ -161,6 +212,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 12,
     color: colors.muted,
+  },
+  promptList: {
+    gap: 10,
+  },
+  promptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  promptTextWrap: {
+    flex: 1,
+  },
+  promptText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.text,
   },
   input: {
     height: 96,
