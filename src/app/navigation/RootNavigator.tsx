@@ -1,0 +1,24 @@
+import React from 'react';
+import { ActivityIndicator, View } from 'react-native';
+
+import { useAuth } from '../providers/AuthProvider';
+import { AuthStack } from './AuthStack';
+import { MainTabs } from './MainTabs';
+
+export function RootNavigator() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return <AuthStack />;
+  }
+
+  return <MainTabs />;
+}
