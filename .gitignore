@@ -36,6 +36,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+src/services/team_project_backend_1219/target/
+src/services/team_project_backend_1219/.idea/
+
 # generated native folders
 /ios
 /android

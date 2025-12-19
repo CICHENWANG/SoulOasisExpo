@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.equestria.sosd_blog.Mapper.UserMapper">
+
+    <!-- 注册用户 -->
+    <insert id="registor" parameterType="com.equestria.sosd_blog.Domain.DTO.RegisterDTO" useGeneratedKeys="false">
+        insert into users
+        (id, username, password, email, phone, create_time, update_time)
+        values(#{id},#{username},#{password},#{email},#{phone},NOW(),NOW())
+    </insert>
+
+    <update id="updateInfo" parameterType="com.equestria.sosd_blog.Domain.DTO.UpdateInfoDTO">
+        UPDATE users
+        <set>
+            <if test="username != null and username != ''">
+                username = #{username},
+            </if>
+            <if test="email != null and email != ''">
+                email = #{email},
+            </if>
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="avatar != null and avatar != ''">
+                avatar = #{avatar},
+            </if>
+            <if test="bio != null and bio != ''">
+                bio = #{bio},
+            </if>
+            <if test="">
+                update_time = NOW(),
+            </if>
+
+        </set>
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="changePassword">
+        update users
+        set password=#{newHashPw}, update_time=NOW()
+        where id= #{userId}
+    </update>
+
+
+    <!-- 根据用户名查询密码 -->
+    <select id="getPwByUsername" resultType="java.lang.String" parameterType="java.lang.String">
+        select password
+        from users
+        where username = #{username}
+    </select>
+
+    <!-- 根据用户名查询用户ID -->
+    <select id="getUserIdByUsername" resultType="java.lang.Long" parameterType="java.lang.String">
+        select id
+        from users
+        where username = #{username}
+    </select>
+
+    <!-- 根据 userId 查询用户完整信息 -->
+    <select id="getUserInfoByUserId" resultType="com.equestria.sosd_blog.Domain.VO.MyInfoVO"
+            parameterType="java.lang.Long">
+        select
+        username,
+        password,
+        email,
+        phone,
+        avatar,
+        bio,
+        follower_count as followerCount,
+        following_count as followingCount,
+        article_count as articleCount,
+        favorite_count as favoriteCount,
+        create_time as createTime,
+        role,
+        status
+        from users
+        where id = #{userId}
+    </select>
+
+    <select id="getPwByUserId" resultType="java.lang.String">
+        select password
+        from users
+        where id = #{userId}
+    </select>
+
+
+</mapper>
