@@ -19,17 +19,14 @@ sa-token:
   # 是否输出操作日志
   is-log: true
 
-
-
-  mybatis:
-    configuration-properties:
-      helperDialect: mysql    #指定mybatis使用mysql语言对数据库进行操作
-      reasonable: true    #使用mybatis提供的数据格式自动优化,比如说去除一些空格
-    mapper-locations: classpath*:mapper/**/*.xml   #当使用mybatis提供的动态sql语句时,指定对应xml文件所在位置, 并扫描所有jar包中的所有mapper文件夹中的xml
-    type-aliases-package: com.equestria.sosd_blog.Domain    #指定mybatis映射的java实体类的位置
-    configuration:
-      map-underscore-to-camel-case: true    #在所有的字段映射时开启下划线命名和驼峰命名的自动转换
-
+mybatis:
+  configuration-properties:
+    helperDialect: mysql    #指定mybatis使用mysql语言对数据库进行操作
+    reasonable: true    #使用mybatis提供的数据格式自动优化,比如说去除一些空格
+  mapper-locations: classpath*:com/equestria/sosd_blog/Mapper/*.xml   #当使用mybatis提供的动态sql语句时,指定对应xml文件所在位置, 并扫描所有jar包中的所有mapper文件夹中的xml
+  type-aliases-package: com.equestria.sosd_blog.Domain    #指定mybatis映射的java实体类的位置
+  configuration:
+    map-underscore-to-camel-case: true    #在所有的字段映射时开启下划线命名和驼峰命名的自动转换
 
 spring:
   servlet:
@@ -38,9 +35,9 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
   redis:
-    host: localhost
-    port: 3679
-    password: 456789
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
     lettuce:
       poll:
         max-active: 8
@@ -48,9 +45,8 @@ spring:
         min-idle: 0
         max-wait: 200
 
-
   datasource:
-    url: jdbc:mysql://localhost:3306/sosd_blogs?useSSL=false&serverTimezone=UTC&characterEncoding=utf-8
-    username: root
-    password: 456789
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:sosd_blogs}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf-8
+    username: ${MYSQL_USER:root}
+    password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver

@@ -1,5 +1,6 @@
 package com.equestria.sosd_blog.Configure;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -12,14 +13,25 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 @Configuration
 public class RedisConfig {
 
+    @Value("${REDIS_HOST:localhost}")
+    private String host;
+
+    @Value("${REDIS_PORT:6379}")
+    private int port;
+
+    @Value("${REDIS_PASSWORD:}")
+    private String password;
+
 
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         //配置redis的连接工厂,当然也可以不用写在这里而直接在yml中配置,然后由spring自动创建并注册到spring容器中
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
-        configuration.setHostName("localhost"); // 替换为你的 Redis 服务器地址
-        configuration.setPort(6379); // 替换为你的 Redis 服务器端口
-        configuration.setPassword("456789"); // 如果 Redis 没有密码，可以注释掉这一行
+        configuration.setHostName(host);
+        configuration.setPort(port);
+        if (password != null && !password.isBlank()) {
+            configuration.setPassword(password);
+        }
         return new JedisConnectionFactory(configuration);
     }
 

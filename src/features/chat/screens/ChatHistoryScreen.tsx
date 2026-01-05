@@ -118,6 +118,14 @@ export function ChatHistoryScreen({ navigation }: Props) {
     setNewPreview('');
   };
 
+  const backToChat = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('ChatHome');
+  };
+
   return (
     <Screen>
       <Card>
@@ -148,7 +156,7 @@ export function ChatHistoryScreen({ navigation }: Props) {
         />
         <View style={styles.row}>
           <PrimaryButton title="创建" onPress={add} style={styles.flex} />
-          <PrimaryButton title="继续聊" variant="ghost" onPress={() => navigation.navigate('ChatHome')} style={styles.flex} />
+          <PrimaryButton title="继续聊" variant="ghost" onPress={backToChat} style={styles.flex} />
         </View>
       </Card>
 
@@ -202,7 +210,7 @@ export function ChatHistoryScreen({ navigation }: Props) {
             <View style={styles.row}>
               <PrimaryButton
                 title="继续聊"
-                onPress={() => navigation.navigate('ChatHome')}
+                onPress={backToChat}
                 style={styles.flex}
               />
               <PrimaryButton

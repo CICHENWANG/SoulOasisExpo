@@ -1,7 +1,6 @@
 package com.equestria.sosd_blog.Domain.POJO;
 
 import lombok.Data;
-import org.springframework.cglib.core.Local;
 
 import java.time.LocalDateTime;
 

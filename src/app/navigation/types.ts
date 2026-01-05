@@ -3,11 +3,19 @@ export type AuthStackParamList = {
   Register: undefined;
 };
 
+export type RootStackParamList = {
+  Start: undefined;
+  Auth: undefined;
+  Main: undefined;
+};
+
 export type HomeStackParamList = {
   Home: undefined;
   Quotes: undefined;
   ActiveCare: undefined;
   Visualization: undefined;
+  MoodCalendar: undefined;
+  Skin: undefined;
 };
 
 export type HealingStackParamList = {
@@ -29,5 +37,6 @@ export type ChatStackParamList = {
 export type MainTabParamList = {
   HomeTab: undefined;
   HealingTab: undefined;
-  ChatTab: undefined;
+  CommunityTab: undefined;
+  MineTab: undefined;
 };

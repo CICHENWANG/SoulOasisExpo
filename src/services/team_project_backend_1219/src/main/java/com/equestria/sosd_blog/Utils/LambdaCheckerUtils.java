@@ -8,7 +8,7 @@ import java.util.function.Predicate;
 public class LambdaCheckerUtils {
 
     private final Predicate<String> PASSWORD_RULE =
-            password -> password != null && password.matches("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,20}$");
+            password -> password != null && password.matches("^(?=.*[A-Za-z])(?=.*\\d).{6,50}$");
 
     private final Predicate<String> PHONE_RULE =
             phone -> phone != null && phone.matches("^1[3-9]\\d{9}$");
@@ -17,7 +17,7 @@ public class LambdaCheckerUtils {
             email -> email != null && email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     private final Predicate<String> USERNAME_RULE=
-            username-> username != null && username.matches("^[A-Za-z0-9]{1,20}$");
+            username-> username != null && username.matches("^[A-Za-z0-9 _]{2,20}$");
 
 
     public boolean isValidPw(String password) {

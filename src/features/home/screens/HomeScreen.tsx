@@ -1,211 +1,246 @@
-import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Image,
+  ImageBackground,
+  PanResponder,
+  Pressable,
+  StatusBar,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { HomeStackParamList } from '../../../app/navigation/types';
-import { useAuth } from '../../../app/providers/AuthProvider';
-import { Card } from '../../../ui/components/Card';
-import { PrimaryButton } from '../../../ui/components/PrimaryButton';
-import { Screen } from '../../../ui/components/Screen';
-import { colors } from '../../../ui/theme/colors';
+import { useSkin } from '../../../app/providers/SkinProvider';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
-type CheckInTag = '睡眠' | '学习' | '情绪' | '关系';
-
-type PlanItem = {
-  id: string;
-  title: string;
-  detail: string;
-  done: boolean;
-};
-
 export function HomeScreen({ navigation }: Props) {
-  const { user, signOut } = useAuth();
+  const { skinSource } = useSkin();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const bgGood = useMemo(() => require('../../../../assets/home/首页(ai形象） (3).png'), []);
+  const bgBad = useMemo(() => require('../../../../assets/home/首页(ai形象） (5).png'), []);
+  const quickClothes = useMemo(() => require('../../../../assets/home/Group 32.png'), []);
+  const quickMood = useMemo(() => require('../../../../assets/home/Group 21.png'), []);
+  const quickNotes = useMemo(() => require('../../../../assets/home/Group 22.png'), []);
+  const sliderTrack = useMemo(() => require('../../../../assets/home/Rectangle 73.png'), []);
+  const knobHappy = useMemo(() => require('../../../../assets/home/Group 24.png'), []);
+  const knobAngry = useMemo(() => require('../../../../assets/home/Group 23.png'), []);
 
-  const [focus, setFocus] = useState<CheckInTag>('情绪');
-  const [moodLevel, setMoodLevel] = useState<'轻松' | '一般' | '紧张'>('一般');
-  const [plan, setPlan] = useState<PlanItem[]>([
-    { id: 'p1', title: '喝水/吃点东西', detail: '先照顾身体，再处理情绪。', done: false },
-    { id: 'p2', title: '2 分钟呼吸', detail: '把注意力带回身体。', done: false },
-    { id: 'p3', title: '写一句自我肯定', detail: '例如：我已经很努力了。', done: false },
-  ]);
+  const [mood, setMood] = useState(0.08);
+  const [trackWidth, setTrackWidth] = useState(0);
 
-  const greeting = useMemo(() => {
-    const h = new Date().getHours();
-    if (h < 11) return '早上好';
-    if (h < 14) return '中午好';
-    if (h < 18) return '下午好';
-    return '晚上好';
-  }, []);
+  const moodRef = useRef(mood);
+  const trackWidthRef = useRef(trackWidth);
+  const dragStartMoodRef = useRef(0);
 
-  const doneCount = useMemo(() => plan.filter((x) => x.done).length, [plan]);
+  useEffect(() => {
+    moodRef.current = mood;
+  }, [mood]);
 
-  const togglePlan = (id: string) => {
-    setPlan((prev) => prev.map((x) => (x.id === id ? { ...x, done: !x.done } : x)));
+  useEffect(() => {
+    trackWidthRef.current = trackWidth;
+  }, [trackWidth]);
+
+  const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
+  const knobSize = 44;
+  const usableWidth = Math.max(0, trackWidth - knobSize);
+
+  const onPressTrack = (x: number) => {
+    if (usableWidth <= 0) return;
+    const next = clamp01((x - knobSize / 2) / usableWidth);
+    setMood(next);
   };
 
+  const knobLeft = mood * usableWidth;
+
+  const panResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_evt, gestureState) =>
+          Math.abs(gestureState.dx) > 2 || Math.abs(gestureState.dy) > 2,
+        onPanResponderGrant: () => {
+          dragStartMoodRef.current = moodRef.current;
+        },
+        onPanResponderMove: (_evt, gestureState) => {
+          const w = trackWidthRef.current;
+          const usable = Math.max(0, w - knobSize);
+          if (usable <= 0) return;
+          const next = clamp01(dragStartMoodRef.current + gestureState.dx / usable);
+          setMood(next);
+        },
+      }),
+    [],
+  );
+
+  const toTab = (name: 'HealingTab' | 'CommunityTab' | 'MineTab') => {
+    (navigation.getParent() as any)?.navigate?.(name);
+  };
+
+  const ghostWrapTop = Math.max(78, winH * 0.11);
+  const ghostWrapHeight = Math.max(360, winH * 0.54);
+  const ghostImgSize = Math.min(winW * 1.42, 640);
+  const ghostTranslateY = -ghostImgSize * 0.13;
+  const bg = mood >= 0.5 ? bgBad : bgGood;
+
   return (
-    <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>首页</Text>
-        <Text style={styles.subtitle}>
-          {user ? `${greeting}，${user.displayName}` : greeting}
-        </Text>
-      </View>
+    <View style={styles.root}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
-      <Card>
-        <Text style={styles.sectionTitle}>今日状态</Text>
-        <Text style={styles.body}>{`关注主题：${focus} · 当前感受：${moodLevel}`}</Text>
-        <View style={styles.row}>
-          <PrimaryButton
-            title="睡眠"
-            variant={focus === '睡眠' ? 'primary' : 'ghost'}
-            onPress={() => setFocus('睡眠')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="学习"
-            variant={focus === '学习' ? 'primary' : 'ghost'}
-            onPress={() => setFocus('学习')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="情绪"
-            variant={focus === '情绪' ? 'primary' : 'ghost'}
-            onPress={() => setFocus('情绪')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="关系"
-            variant={focus === '关系' ? 'primary' : 'ghost'}
-            onPress={() => setFocus('关系')}
-            style={styles.flex}
-          />
-        </View>
-        <View style={styles.row}>
-          <PrimaryButton
-            title="轻松"
-            variant={moodLevel === '轻松' ? 'primary' : 'ghost'}
-            onPress={() => setMoodLevel('轻松')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="一般"
-            variant={moodLevel === '一般' ? 'primary' : 'ghost'}
-            onPress={() => setMoodLevel('一般')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="紧张"
-            variant={moodLevel === '紧张' ? 'primary' : 'ghost'}
-            onPress={() => setMoodLevel('紧张')}
-            style={styles.flex}
-          />
-        </View>
-      </Card>
+      <ImageBackground source={bg} style={styles.bg} resizeMode="cover">
+        <View style={styles.overlay}>
+          <View
+            style={[styles.avatarOverlay, { top: ghostWrapTop, height: ghostWrapHeight }]}
+            pointerEvents="none"
+          >
+            <Image
+              source={skinSource}
+              style={[
+                styles.avatarImg,
+                {
+                  width: ghostImgSize,
+                  height: ghostImgSize,
+                  transform: [
+                    { scaleX: 0.96 },
+                    { scaleY: 1.08 },
+                    { translateX: -8 },
+                    { translateY: ghostTranslateY },
+                  ],
+                },
+              ]}
+              resizeMode="contain"
+              blurRadius={14}
+            />
+          </View>
 
-      <Card>
-        <Text style={styles.sectionTitle}>快速入口</Text>
-        <View style={styles.row}>
-          <PrimaryButton
-            title="治愈语录"
-            onPress={() => navigation.navigate('Quotes')}
-            style={styles.flex}
-          />
-          <PrimaryButton
-            title="主动关怀"
-            variant="ghost"
-            onPress={() => navigation.navigate('ActiveCare')}
-            style={styles.flex}
-          />
-        </View>
-        <PrimaryButton
-          title="数据可视化"
-          variant="ghost"
-          onPress={() => navigation.navigate('Visualization')}
-        />
-      </Card>
+          <View style={styles.rightTools}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('Skin')}
+              style={({ pressed }) => [styles.toolBtn, pressed && styles.toolBtnPressed]}
+            >
+              <Image source={quickClothes} style={styles.toolImg} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => toTab('HealingTab')}
+              style={({ pressed }) => [styles.toolBtn, pressed && styles.toolBtnPressed]}
+            >
+              <Image source={quickMood} style={styles.toolImg} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('MoodCalendar')}
+              style={({ pressed }) => [styles.toolBtn, pressed && styles.toolBtnPressed]}
+            >
+              <Image source={quickNotes} style={styles.toolImg} />
+            </Pressable>
+          </View>
 
-      <Card>
-        <Text style={styles.sectionTitle}>今日计划</Text>
-        <Text style={styles.body}>{`完成 ${doneCount} / ${plan.length}`}</Text>
-        <View style={styles.planList}>
-          {plan.map((x) => (
-            <View key={x.id} style={styles.planItem}>
-              <View style={styles.planText}>
-                <Text style={styles.planTitle}>{x.title}</Text>
-                <Text style={styles.planDetail}>{x.detail}</Text>
+          <View style={styles.sliderArea}>
+            <Pressable
+              accessibilityRole="adjustable"
+              onPress={(e) => onPressTrack(e.nativeEvent.locationX)}
+              onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+              style={styles.trackWrap}
+            >
+              <Image source={sliderTrack} style={styles.trackImg} resizeMode="stretch" />
+              <View style={[styles.knob, { left: knobLeft }]} {...panResponder.panHandlers}>
+                <Image
+                  source={mood >= 0.5 ? knobAngry : knobHappy}
+                  style={styles.knobIcon}
+                  resizeMode="contain"
+                />
               </View>
-              <PrimaryButton
-                title={x.done ? '已完成' : '完成'}
-                variant={x.done ? 'primary' : 'ghost'}
-                onPress={() => togglePlan(x.id)}
-              />
-            </View>
-          ))}
+            </Pressable>
+          </View>
         </View>
-      </Card>
-
-      <PrimaryButton title="退出登录" variant="danger" onPress={() => void signOut()} />
-    </Screen>
+      </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  header: {
-    gap: 6,
-    paddingVertical: 6,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  subtitle: {
-    fontSize: 13,
-    color: colors.muted,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 10,
-  },
-  body: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: colors.muted,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 10,
-  },
-  flex: {
+  root: {
     flex: 1,
   },
-  planList: {
-    marginTop: 12,
-    gap: 10,
+  bg: {
+    flex: 1,
   },
-  planItem: {
-    flexDirection: 'row',
-    gap: 10,
+  overlay: {
+    flex: 1,
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    overflow: 'hidden',
+    opacity: 0.22,
+  },
+  avatarImg: {
+    alignSelf: 'center',
+  },
+  rightTools: {
+    position: 'absolute',
+    right: 18,
+    top: 96,
+    gap: 18,
+  },
+  toolBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  toolBtnPressed: {
+    opacity: 0.86,
+  },
+  toolImg: {
+    width: 64,
+    height: 64,
+    resizeMode: 'contain',
+  },
+  sliderArea: {
+    position: 'absolute',
+    left: 22,
+    right: 22,
+    bottom: 124,
     alignItems: 'center',
   },
-  planText: {
-    flex: 1,
-    gap: 4,
+  trackWrap: {
+    width: '100%',
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  planTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.text,
+  trackImg: {
+    width: '100%',
+    height: 54,
   },
-  planDetail: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: colors.muted,
+  knob: {
+    position: 'absolute',
+    top: -5,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 3,
+    borderColor: '#FDB650',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  knobIcon: {
+    width: 30,
+    height: 30,
+    transform: [{ translateY: 0 }],
   },
 });

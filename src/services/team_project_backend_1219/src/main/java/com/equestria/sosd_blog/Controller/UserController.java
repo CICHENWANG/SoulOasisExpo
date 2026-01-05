@@ -8,6 +8,7 @@ import com.equestria.sosd_blog.Domain.Result.Result;
 import com.equestria.sosd_blog.Domain.VO.MyInfoVO;
 import com.equestria.sosd_blog.Service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/user")
+@CrossOrigin
 @RequiredArgsConstructor
 public class UserController {
 

@@ -22,11 +22,13 @@ type AuthContextValue = {
   accessToken: string | null;
   isLoading: boolean;
   signIn: (params: { email: string; password: string }) => Promise<void>;
+  signInWithFido: (params: { email: string }) => Promise<void>;
   register: (params: {
     email: string;
     password: string;
     displayName: string;
   }) => Promise<void>;
+  enableFido: (params: { email: string }) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -74,6 +76,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const signInWithFido = useCallback(async (params: { email: string }) => {
+    const result = await authApi.loginWithFido(params);
+    setUser(result.user);
+    setAccessToken(result.accessToken);
+    await Promise.all([
+      AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(result.user)),
+      AsyncStorage.setItem(AUTH_TOKEN_KEY, result.accessToken),
+    ]);
+  }, []);
+
   const register = useCallback(
     async (params: { email: string; password: string; displayName: string }) => {
       const result = await authApi.register(params);
@@ -87,6 +99,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const enableFido = useCallback(async (params: { email: string }) => {
+    await authApi.enableFido(params);
+  }, []);
+
   const signOut = useCallback(async () => {
     setUser(null);
     setAccessToken(null);
@@ -97,8 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, accessToken, isLoading, signIn, register, signOut }),
-    [user, accessToken, isLoading, signIn, register, signOut],
+    () => ({ user, accessToken, isLoading, signIn, signInWithFido, register, enableFido, signOut }),
+    [user, accessToken, isLoading, signIn, signInWithFido, register, enableFido, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

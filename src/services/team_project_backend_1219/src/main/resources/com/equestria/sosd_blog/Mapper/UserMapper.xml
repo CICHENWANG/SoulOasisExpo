@@ -30,12 +30,10 @@
             <if test="bio != null and bio != ''">
                 bio = #{bio},
             </if>
-            <if test="">
-                update_time = NOW(),
-            </if>
+            update_time = NOW()
 
         </set>
-        WHERE user_id = #{userId}
+        WHERE id = #{userId}
     </update>
 
     <update id="changePassword">
@@ -44,7 +42,6 @@
         where id= #{userId}
     </update>
 
-
     <!-- 根据用户名查询密码 -->
     <select id="getPwByUsername" resultType="java.lang.String" parameterType="java.lang.String">
         select password
@@ -52,11 +49,25 @@
         where username = #{username}
     </select>
 
+    <!-- 根据邮箱查询密码 -->
+    <select id="getPwByEmail" resultType="java.lang.String" parameterType="java.lang.String">
+        select password
+        from users
+        where email = #{email}
+    </select>
+
     <!-- 根据用户名查询用户ID -->
     <select id="getUserIdByUsername" resultType="java.lang.Long" parameterType="java.lang.String">
         select id
         from users
         where username = #{username}
+    </select>
+
+    <!-- 根据邮箱查询用户ID -->
+    <select id="getUserIdByEmail" resultType="java.lang.Long" parameterType="java.lang.String">
+        select id
+        from users
+        where email = #{email}
     </select>
 
     <!-- 根据 userId 查询用户完整信息 -->

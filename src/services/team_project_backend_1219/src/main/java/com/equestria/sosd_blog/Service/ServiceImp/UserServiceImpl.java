@@ -11,7 +11,6 @@ import com.equestria.sosd_blog.Utils.IdGeneratorUtils;
 import com.equestria.sosd_blog.Utils.LambdaCheckerUtils;
 import com.equestria.sosd_blog.Utils.PasswordUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,7 +19,6 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final IdGeneratorUtils idGeneratorUtils;
-    private final StringRedisTemplate stringRedisTemplate;
     private final PasswordUtils passwordUtils;
     private final LambdaCheckerUtils lambdaCheckerUtils;
 
@@ -30,8 +28,10 @@ public class UserServiceImpl implements UserService {
 
         try {
             // 校验手机号
-            if (!lambdaCheckerUtils.isValidPhone(registerDTO.getPhone())) {
-                throw new IllegalArgumentException("手机号不合法");
+            if (registerDTO.getPhone() != null && !registerDTO.getPhone().isBlank()) {
+                if (!lambdaCheckerUtils.isValidPhone(registerDTO.getPhone())) {
+                    throw new IllegalArgumentException("手机号不合法");
+                }
             }
 
             // 校验邮箱

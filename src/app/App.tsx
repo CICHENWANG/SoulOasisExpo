@@ -4,14 +4,17 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootNavigator } from './navigation/RootNavigator';
 import { AuthProvider } from './providers/AuthProvider';
+import { SkinProvider } from './providers/SkinProvider';
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <SkinProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </SkinProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
