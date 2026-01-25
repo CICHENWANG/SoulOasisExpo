@@ -25,34 +25,34 @@ type Mode = {
 const MODES: Mode[] = [
   {
     id: '446',
-    name: '稳态 4-4-6',
+    name: 'Steady 4-4-6',
     steps: [
-      { label: '吸气', seconds: 4 },
-      { label: '停留', seconds: 4 },
-      { label: '呼气', seconds: 6 },
+      { label: 'Inhale', seconds: 4 },
+      { label: 'Hold', seconds: 4 },
+      { label: 'Exhale', seconds: 6 },
     ],
-    hint: '适合日常稳定情绪，呼气更长更放松。',
+    hint: 'For daily regulation. A longer exhale often feels more relaxing.',
   },
   {
     id: '478',
-    name: '入睡 4-7-8',
+    name: 'Sleep 4-7-8',
     steps: [
-      { label: '吸气', seconds: 4 },
-      { label: '停留', seconds: 7 },
-      { label: '呼气', seconds: 8 },
+      { label: 'Inhale', seconds: 4 },
+      { label: 'Hold', seconds: 7 },
+      { label: 'Exhale', seconds: 8 },
     ],
-    hint: '适合睡前，若觉得憋气不舒服可缩短停留。',
+    hint: 'Good before bed. Shorten the hold if it feels uncomfortable.',
   },
   {
     id: 'box',
-    name: '方形 4-4-4-4',
+    name: 'Box 4-4-4-4',
     steps: [
-      { label: '吸气', seconds: 4 },
-      { label: '停留', seconds: 4 },
-      { label: '呼气', seconds: 4 },
-      { label: '停留', seconds: 4 },
+      { label: 'Inhale', seconds: 4 },
+      { label: 'Hold', seconds: 4 },
+      { label: 'Exhale', seconds: 4 },
+      { label: 'Hold', seconds: 4 },
     ],
-    hint: '适合专注前，节奏均匀，更好跟随。',
+    hint: 'Good before focused work. Even rhythm and easy to follow.',
   },
 ];
 
@@ -90,10 +90,10 @@ export function BreathingTrainingScreen({}: Props) {
   const [history, setHistory] = useState<Session[]>([
     {
       id: sid('s'),
-      modeName: '稳态 4-4-6',
+      modeName: 'Steady 4-4-6',
       rounds: 3,
       durationSec: 120,
-      note: '中午短练一下',
+      note: 'Quick midday practice',
     },
   ]);
 
@@ -120,14 +120,14 @@ export function BreathingTrainingScreen({}: Props) {
   }, [isRunning, steps]);
 
   const statusText = useMemo(() => {
-    if (!isRunning) return '准备开始';
+    if (!isRunning) return 'Ready';
     return `${step.label} · ${phase.remaining}s`;
   }, [isRunning, step.label, phase.remaining]);
 
   const progressText = useMemo(() => {
-    if (!isRunning) return `目标 ${targetRounds} 轮`; 
+    if (!isRunning) return `Target: ${targetRounds} round${targetRounds === 1 ? '' : 's'}`;
     const current = Math.min(phase.round, targetRounds);
-    return `第 ${current} / ${targetRounds} 轮 · 已用时 ${elapsedSec}s`;
+    return `Round ${current} / ${targetRounds} · Elapsed ${elapsedSec}s`;
   }, [isRunning, targetRounds, phase.round, elapsedSec]);
 
   const start = () => {
@@ -155,7 +155,7 @@ export function BreathingTrainingScreen({}: Props) {
           modeName: mode.name,
           rounds: targetRounds,
           durationSec: elapsedSec,
-          note: '自动完成',
+          note: 'Completed automatically',
         },
         ...prev,
       ].slice(0, 5));
@@ -165,12 +165,12 @@ export function BreathingTrainingScreen({}: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>呼吸训练</Text>
+        <Text style={styles.title}>Breathing training</Text>
         <Text style={styles.subtitle}>{mode.hint}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>模式</Text>
+        <Text style={styles.sectionTitle}>Mode</Text>
         <View style={styles.row}>
           {MODES.map((m) => (
             <PrimaryButton
@@ -187,12 +187,12 @@ export function BreathingTrainingScreen({}: Props) {
             />
           ))}
         </View>
-        <Text style={styles.muted}>目标轮次</Text>
+        <Text style={styles.muted}>Target rounds</Text>
         <View style={styles.row}>
           {[1, 2, 3, 5].map((n) => (
             <PrimaryButton
               key={n}
-              title={`${n} 轮`}
+              title={`${n} round${n === 1 ? '' : 's'}`}
               variant={targetRounds === n ? 'primary' : 'ghost'}
               onPress={() => setTargetRounds(n as 1 | 2 | 3 | 5)}
               style={styles.flex}
@@ -206,21 +206,21 @@ export function BreathingTrainingScreen({}: Props) {
         <Text style={styles.progress}>{progressText}</Text>
         <View style={styles.row}>
           {!isRunning ? (
-            <PrimaryButton title="开始" onPress={start} style={styles.flex} />
+            <PrimaryButton title="Start" onPress={start} style={styles.flex} />
           ) : (
-            <PrimaryButton title="暂停" variant="ghost" onPress={stop} style={styles.flex} />
+            <PrimaryButton title="Pause" variant="ghost" onPress={stop} style={styles.flex} />
           )}
-          <PrimaryButton title="重置" variant="ghost" onPress={reset} style={styles.flex} />
+          <PrimaryButton title="Reset" variant="ghost" onPress={reset} style={styles.flex} />
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>最近记录</Text>
+        <Text style={styles.sectionTitle}>Recent sessions</Text>
         <View style={styles.historyList}>
           {history.map((s) => (
             <View key={s.id} style={styles.historyItem}>
               <Text style={styles.historyTitle}>{s.modeName}</Text>
-              <Text style={styles.historyMeta}>{`${s.rounds} 轮 · ${s.durationSec}s`}</Text>
+              <Text style={styles.historyMeta}>{`${s.rounds} round${s.rounds === 1 ? '' : 's'} · ${s.durationSec}s`}</Text>
               <Text style={styles.historyNote}>{s.note}</Text>
             </View>
           ))}
@@ -228,8 +228,8 @@ export function BreathingTrainingScreen({}: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>提示</Text>
-        <Text style={styles.muted}>如果觉得憋气不舒服，把“停留”缩短或直接跳过即可。</Text>
+        <Text style={styles.sectionTitle}>Tip</Text>
+        <Text style={styles.muted}>If holding your breath feels uncomfortable, shorten the hold or skip it.</Text>
       </Card>
     </Screen>
   );

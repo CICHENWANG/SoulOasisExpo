@@ -15,24 +15,42 @@ type Task = {
   id: string;
   title: string;
   detail: string;
-  category: '身体' | '情绪' | '社交' | '学习';
+  category: 'Body' | 'Emotion' | 'Social' | 'Study';
   done: boolean;
 };
 
 type Filter = 'all' | 'todo' | 'done';
 
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
 const INITIAL: Task[] = [
-  { id: 't1', title: '喝一杯温水', detail: '给身体一点补给。', category: '身体', done: false },
-  { id: 't2', title: '站起来走 2 分钟', detail: '让注意力回到身体。', category: '身体', done: false },
+  { id: 't1', title: 'Drink a glass of warm water', detail: 'Give your body some fuel.', category: 'Body', done: false },
+  { id: 't2', title: 'Stand up and walk for 2 minutes', detail: 'Bring your attention back to your body.', category: 'Body', done: false },
   {
     id: 't3',
-    title: '发一条关心给自己',
-    detail: '例如：我已经很努力了。',
-    category: '情绪',
+    title: 'Send yourself a kind message',
+    detail: 'For example: "I did my best today."',
+    category: 'Emotion',
     done: false,
   },
-  { id: 't4', title: '给朋友/家人发个问候', detail: '保持连接，不必长谈。', category: '社交', done: false },
-  { id: 't5', title: '整理桌面 3 分钟', detail: '用环境给自己一点秩序感。', category: '学习', done: false },
+  {
+    id: 't4',
+    title: 'Send a quick check-in to a friend or family member',
+    detail: 'Stay connected—no long talk needed.',
+    category: 'Social',
+    done: false,
+  },
+  {
+    id: 't5',
+    title: 'Tidy your desk for 3 minutes',
+    detail: 'Let your space give you a bit of order.',
+    category: 'Study',
+    done: false,
+  },
 ];
 
 function id(prefix: string) {
@@ -42,10 +60,10 @@ function id(prefix: string) {
 export function ActiveCareScreen({}: Props) {
   const [tasks, setTasks] = useState<Task[]>(INITIAL);
   const [filter, setFilter] = useState<Filter>('all');
-  const [energy, setEnergy] = useState<'低' | '中' | '高'>('中');
+  const [energy, setEnergy] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [newTitle, setNewTitle] = useState('');
   const [newDetail, setNewDetail] = useState('');
-  const [newCategory, setNewCategory] = useState<Task['category']>('情绪');
+  const [newCategory, setNewCategory] = useState<Task['category']>('Emotion');
 
   const doneCount = useMemo(() => tasks.filter((t) => t.done).length, [tasks]);
 
@@ -64,9 +82,9 @@ export function ActiveCareScreen({}: Props) {
   };
 
   const addTask = () => {
-    const title = newTitle.trim();
+    const title = stripCjk(newTitle).trim();
     if (!title) return;
-    const detail = newDetail.trim() || '为自己做一件小事。';
+    const detail = stripCjk(newDetail).trim() || 'Do something small for yourself.';
     const next: Task = {
       id: id('task'),
       title,
@@ -82,28 +100,28 @@ export function ActiveCareScreen({}: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>主动关怀</Text>
-        <Text style={styles.subtitle}>用很小的行动，把自己照顾回来。</Text>
+        <Text style={styles.title}>Active Care</Text>
+        <Text style={styles.subtitle}>Care for yourself with small, doable actions.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>今日清单</Text>
-        <Text style={styles.muted}>{`完成 ${doneCount} / ${tasks.length}`}</Text>
+        <Text style={styles.sectionTitle}>Today</Text>
+        <Text style={styles.muted}>{`Completed ${doneCount} / ${tasks.length}`}</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="全部"
+            title="All"
             variant={filter === 'all' ? 'primary' : 'ghost'}
             onPress={() => setFilter('all')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="待完成"
+            title="To do"
             variant={filter === 'todo' ? 'primary' : 'ghost'}
             onPress={() => setFilter('todo')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="已完成"
+            title="Done"
             variant={filter === 'done' ? 'primary' : 'ghost'}
             onPress={() => setFilter('done')}
             style={styles.flex}
@@ -112,67 +130,72 @@ export function ActiveCareScreen({}: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>状态记录</Text>
-        <Text style={styles.muted}>{`精力水平：${energy}`}</Text>
+        <Text style={styles.sectionTitle}>Check-in</Text>
+        <Text style={styles.muted}>{`Energy level: ${energy}`}</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="低"
-            variant={energy === '低' ? 'primary' : 'ghost'}
-            onPress={() => setEnergy('低')}
+            title="Low"
+            variant={energy === 'Low' ? 'primary' : 'ghost'}
+            onPress={() => setEnergy('Low')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="中"
-            variant={energy === '中' ? 'primary' : 'ghost'}
-            onPress={() => setEnergy('中')}
+            title="Medium"
+            variant={energy === 'Medium' ? 'primary' : 'ghost'}
+            onPress={() => setEnergy('Medium')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="高"
-            variant={energy === '高' ? 'primary' : 'ghost'}
-            onPress={() => setEnergy('高')}
+            title="High"
+            variant={energy === 'High' ? 'primary' : 'ghost'}
+            onPress={() => setEnergy('High')}
             style={styles.flex}
           />
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>新增一条关怀</Text>
-        <TextField label="标题" value={newTitle} onChangeText={setNewTitle} placeholder="例如：洗个热水澡" />
+        <Text style={styles.sectionTitle}>Add an item</Text>
+        <TextField
+          label="Title"
+          value={newTitle}
+          onChangeText={(t) => setNewTitle(stripCjk(t))}
+          placeholder="e.g., take a hot shower"
+        />
         <View style={styles.spacer} />
         <TextField
-          label="说明"
+          label="Detail"
           value={newDetail}
-          onChangeText={setNewDetail}
-          placeholder="写一句更具体的提示（可选）"
+          onChangeText={(t) => setNewDetail(stripCjk(t))}
+          placeholder="Add a more specific note (optional)"
         />
         <View style={styles.row}>
           <PrimaryButton
-            title="身体"
-            variant={newCategory === '身体' ? 'primary' : 'ghost'}
-            onPress={() => setNewCategory('身体')}
+            title="Body"
+            variant={newCategory === 'Body' ? 'primary' : 'ghost'}
+            onPress={() => setNewCategory('Body')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="情绪"
-            variant={newCategory === '情绪' ? 'primary' : 'ghost'}
-            onPress={() => setNewCategory('情绪')}
+            title="Emotion"
+            variant={newCategory === 'Emotion' ? 'primary' : 'ghost'}
+            onPress={() => setNewCategory('Emotion')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="社交"
-            variant={newCategory === '社交' ? 'primary' : 'ghost'}
-            onPress={() => setNewCategory('社交')}
+            title="Social"
+            variant={newCategory === 'Social' ? 'primary' : 'ghost'}
+            onPress={() => setNewCategory('Social')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="学习"
-            variant={newCategory === '学习' ? 'primary' : 'ghost'}
-            onPress={() => setNewCategory('学习')}
+            title="Study"
+            variant={newCategory === 'Study' ? 'primary' : 'ghost'}
+            onPress={() => setNewCategory('Study')}
             style={styles.flex}
           />
         </View>
-        <PrimaryButton title="添加" onPress={addTask} />
+        <PrimaryButton title="Add" onPress={addTask} />
       </Card>
 
       {visibleTasks.map((t) => (
@@ -180,7 +203,7 @@ export function ActiveCareScreen({}: Props) {
           <View style={styles.taskTop}>
             <Text style={styles.badge}>{t.category}</Text>
             <PrimaryButton
-              title="删除"
+              title="Delete"
               variant="ghost"
               onPress={() => removeTask(t.id)}
               style={styles.smallBtn}
@@ -190,7 +213,7 @@ export function ActiveCareScreen({}: Props) {
           <Text style={styles.taskDetail}>{t.detail}</Text>
           <View style={styles.row}>
             <PrimaryButton
-              title={t.done ? '已完成' : '标记完成'}
+              title={t.done ? 'Done' : 'Mark done'}
               variant={t.done ? 'primary' : 'ghost'}
               onPress={() => toggleDone(t.id)}
               style={styles.flex}
@@ -200,19 +223,19 @@ export function ActiveCareScreen({}: Props) {
       ))}
 
       <Card>
-        <Text style={styles.sectionTitle}>建议</Text>
+        <Text style={styles.sectionTitle}>Suggestion</Text>
         <Text style={styles.muted}>
-          如果你现在精力较低，可以只完成 1 条关怀任务；完成本身就足够。
+          If your energy is low, just complete one item. Showing up is enough.
         </Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="恢复示例清单"
+            title="Restore sample list"
             variant="ghost"
             onPress={() => setTasks(INITIAL)}
             style={styles.flex}
           />
           <PrimaryButton
-            title="全部标记完成"
+            title="Mark all done"
             variant="ghost"
             onPress={() => setTasks((prev) => prev.map((x) => ({ ...x, done: true })))}
             style={styles.flex}

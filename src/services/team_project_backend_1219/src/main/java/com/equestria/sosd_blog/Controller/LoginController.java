@@ -33,9 +33,9 @@ public class LoginController {
     public SaResult logout() {
         if (StpUtil.isLogin()) {
             StpUtil.logout();
-            return SaResult.ok("用户退出登录成功");
+            return SaResult.ok("Signed out");
         }
-        return SaResult.error("用户未登录，无需登出");
+        return SaResult.error("Not signed in");
 
     }
 

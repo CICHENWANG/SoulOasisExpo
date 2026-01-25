@@ -48,5 +48,24 @@ spring:
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DB:sosd_blogs}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=utf-8
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+soul:
+  auth-bypass: ${SOUL_AUTH_BYPASS:false}
+  ai:
+    api-key: ${SOUL_AI_API_KEY:}
+    base-url: ${SOUL_AI_BASE_URL:https://api.agicto.cn/v1}
+    model: ${SOUL_AI_MODEL:ERNIE-Speed-128K}
+  migrate:
+    english-notes-cleanup:
+      enabled: ${SOUL_MIGRATE_ENGLISH_NOTES_CLEANUP_ENABLED:false}
+      dry-run: ${SOUL_MIGRATE_ENGLISH_NOTES_CLEANUP_DRY_RUN:true}
+    reset-and-seed-healing-notes:
+      enabled: ${SOUL_MIGRATE_RESET_AND_SEED_HEALING_NOTES_ENABLED:false}
+      target: ${SOUL_MIGRATE_RESET_AND_SEED_HEALING_NOTES_TARGET:200}
+      author: ${SOUL_MIGRATE_RESET_AND_SEED_HEALING_NOTES_AUTHOR:Soul Oasis}
+  seed:
+    healing-notes:
+      enabled: true
+      target: 200

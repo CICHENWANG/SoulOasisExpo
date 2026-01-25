@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '../../../app/providers/AuthProvider';
@@ -9,24 +10,35 @@ import { colors } from '../../../ui/theme/colors';
 
 export function MineScreen() {
   const { user, signOut } = useAuth();
+  const navigation = useNavigation<any>();
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    navigation.dispatch(
+      CommonActions.reset({
+        index: 0,
+        routes: [{ name: 'Start' }],
+      }),
+    );
+  }, [navigation, signOut]);
 
   return (
     <Screen>
-      <Text style={styles.title}>Mine</Text>
+      <Text style={styles.title}>Me</Text>
 
       <Card>
-        <Text style={styles.sectionTitle}>当前用户</Text>
+        <Text style={styles.sectionTitle}>Current User</Text>
         <View style={styles.row}>
-          <Text style={styles.label}>昵称</Text>
+          <Text style={styles.label}>Name</Text>
           <Text style={styles.value}>{user?.displayName ?? '-'}</Text>
         </View>
         <View style={styles.row}>
-          <Text style={styles.label}>邮箱</Text>
+          <Text style={styles.label}>Email</Text>
           <Text style={styles.value}>{user?.email ?? '-'}</Text>
         </View>
       </Card>
 
-      <PrimaryButton title="退出登录" variant="danger" onPress={() => void signOut()} />
+      <PrimaryButton title="Sign Out" variant="danger" onPress={() => void handleSignOut()} />
     </Screen>
   );
 }

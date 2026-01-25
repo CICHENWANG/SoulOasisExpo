@@ -32,6 +32,22 @@
 set -euf
 [ "${MVNW_VERBOSE-}" != debug ] || set -x
 
+if [ "$(uname)" = "Darwin" ] && command -v /usr/libexec/java_home >/dev/null 2>&1; then
+  _mvnw_java11="$(/usr/libexec/java_home -v 11 2>/dev/null || true)"
+  if [ -n "${_mvnw_java11-}" ]; then
+    if [ -z "${JAVA_HOME-}" ]; then
+      JAVA_HOME="${_mvnw_java11}"
+      export JAVA_HOME
+    else
+      _mvnw_ver="$(${JAVA_HOME}/bin/java -version 2>&1 | head -n 1 || true)"
+      echo "${_mvnw_ver}" | grep -q '"11\.' || {
+        JAVA_HOME="${_mvnw_java11}"
+        export JAVA_HOME
+      }
+    fi
+  fi
+fi
+
 # OS specific support.
 native_path() { printf %s\\n "$1"; }
 case "$(uname)" in

@@ -1,6 +1,7 @@
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  ForgotPassword: undefined;
 };
 
 export type RootStackParamList = {
@@ -28,10 +29,16 @@ export type HealingStackParamList = {
 };
 
 export type ChatStackParamList = {
-  ChatHome: undefined;
+  ChatHome: { sessionId?: string; title?: string } | undefined;
   Persona: undefined;
   ChatHistory: undefined;
   VoiceChat: undefined;
+};
+
+export type CommunityStackParamList = {
+  CommunityFeed: { refreshKey?: number } | undefined;
+  NoteDetail: { noteId: string };
+  PostNote: undefined;
 };
 
 export type MainTabParamList = {

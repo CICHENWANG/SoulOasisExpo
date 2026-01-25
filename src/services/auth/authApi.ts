@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { resolveApiBaseUrl } from '../apiBaseUrl';
+
 type StoredUser = {
   id: string;
   email: string;
@@ -14,7 +16,10 @@ type PublicUser = Omit<StoredUser, 'passwordHash'>;
 
 const USERS_KEY = 'db:users';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://127.0.0.1:8080';
+const MOCK_RESET_EXPIRE_MILLIS = 10 * 60 * 1000;
+const mockResetCodes: Record<string, { code: string; expireAt: number }> = {};
+
+const API_BASE_URL = resolveApiBaseUrl();
 
 type AuthMode = 'auto' | 'backend' | 'mock';
 
@@ -59,7 +64,7 @@ async function httpJson<T>(
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    throw new Error(`无法连接后端：${url}（${msg}）`);
+    throw new Error(`Unable to reach backend: ${url} (${msg})`);
   }
 
   const text = await res.text();
@@ -67,17 +72,17 @@ async function httpJson<T>(
   try {
     json = text ? JSON.parse(text) : null;
   } catch {
-    throw new Error(`后端返回非 JSON：${text}`);
+    throw new Error(`Backend returned non-JSON: ${text}`);
   }
 
   if (!res.ok) {
-    throw new Error(`请求失败：HTTP ${res.status}`);
+    throw new Error(`Request failed: status ${res.status}`);
   }
 
   const payload = json as Partial<BackendResult<T>>;
   const code = typeof payload.code === 'number' ? payload.code : 200;
   if (code !== 200) {
-    const msg = payload.message ?? payload.msg ?? '请求失败';
+    const msg = payload.message ?? payload.msg ?? 'Request failed';
     throw new Error(msg);
   }
 
@@ -98,6 +103,21 @@ function hashPassword(password: string) {
     acc = (acc + salt.charCodeAt(i) * (i + 7)) % 1000000;
   }
   return `${acc.toString(16)}.${password.length}`;
+}
+
+function validateEmail(email: string) {
+  if (!email.includes('@')) {
+    throw new Error('Please enter a valid email.');
+  }
+}
+
+function validateNewPassword(password: string) {
+  if (!password) {
+    throw new Error('Please enter a new password.');
+  }
+  if (!/^(?=.*[A-Za-z])(?=.*\d).{6,50}$/.test(password)) {
+    throw new Error('Invalid password (must include letters and numbers, length 6-50).');
+  }
 }
 
 async function getUsers(): Promise<StoredUser[]> {
@@ -131,19 +151,19 @@ async function mockRegister(params: {
   const displayName = params.displayName.trim();
 
   if (!email.includes('@')) {
-    throw new Error('请输入有效邮箱');
+    throw new Error('Please enter a valid email.');
   }
   if (!password) {
-    throw new Error('请输入密码');
+    throw new Error('Please enter a password.');
   }
   if (!displayName) {
-    throw new Error('请输入昵称');
+    throw new Error('Please enter a name.');
   }
 
   const users = await getUsers();
   const exists = users.some((u) => u.email === email);
   if (exists) {
-    throw new Error('该邮箱已注册');
+    throw new Error('This email is already registered.');
   }
 
   const createdAt = new Date().toISOString();
@@ -171,14 +191,14 @@ async function mockLogin(params: {
   const password = params.password;
 
   if (!email || !password) {
-    throw new Error('请输入邮箱和密码');
+    throw new Error('Please enter email and password.');
   }
 
   const users = await getUsers();
   const existing = users.find((u) => u.email === email);
   if (existing) {
     if (existing.passwordHash !== hashPassword(password)) {
-      throw new Error('密码错误');
+      throw new Error('Incorrect password.');
     }
     return {
       user: toPublicUser(existing),
@@ -219,13 +239,13 @@ export const authApi = {
     const displayName = params.displayName.trim();
 
     if (!email.includes('@')) {
-      throw new Error('请输入有效邮箱');
+      throw new Error('Please enter a valid email.');
     }
     if (!password) {
-      throw new Error('请输入密码');
+      throw new Error('Please enter a password.');
     }
     if (!displayName) {
-      throw new Error('请输入昵称');
+      throw new Error('Please enter a name.');
     }
 
     try {
@@ -287,7 +307,7 @@ export const authApi = {
     const password = params.password;
 
     if (!email || !password) {
-      throw new Error('请输入邮箱和密码');
+      throw new Error('Please enter email and password.');
     }
 
     try {
@@ -330,13 +350,13 @@ export const authApi = {
   async enableFido(params: { email: string }): Promise<{ credentialId: string }> {
     const email = params.email.trim().toLowerCase();
     if (!email.includes('@')) {
-      throw new Error('请输入有效邮箱');
+      throw new Error('Please enter a valid email.');
     }
 
     const users = await getUsers();
     const idx = users.findIndex((u) => u.email === email);
     if (idx < 0) {
-      throw new Error('用户不存在');
+      throw new Error('User not found.');
     }
 
     const old = users[idx];
@@ -357,16 +377,16 @@ export const authApi = {
   async loginWithFido(params: { email: string }): Promise<{ user: PublicUser; accessToken: string }> {
     const email = params.email.trim().toLowerCase();
     if (!email.includes('@')) {
-      throw new Error('请输入有效邮箱');
+      throw new Error('Please enter a valid email.');
     }
 
     const users = await getUsers();
     const user = users.find((u) => u.email === email);
     if (!user) {
-      throw new Error('用户不存在');
+      throw new Error('User not found.');
     }
     if (!user.fidoEnabled) {
-      throw new Error('该账号尚未启用 Passkey');
+      throw new Error('Passkey is not enabled for this account.');
     }
 
     return {
@@ -378,5 +398,97 @@ export const authApi = {
       },
       accessToken: randomId('token'),
     };
+  },
+
+  async requestPasswordReset(params: {
+    email: string;
+  }): Promise<{ code: string; expireSeconds: number }> {
+    const mode = getAuthMode();
+    const email = params.email.trim().toLowerCase();
+    validateEmail(email);
+
+    if (mode !== 'mock') {
+      try {
+        return await httpJson<{ code: string; expireSeconds: number }>(
+          '/user/passwordReset/request',
+          {
+            method: 'POST',
+            body: { email },
+          },
+        );
+      } catch (e) {
+        if (mode === 'backend') {
+          throw e;
+        }
+      }
+    }
+
+    const users = await getUsers();
+    const exists = users.some((u) => u.email === email);
+    if (!exists) {
+      throw new Error('User not found.');
+    }
+
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    mockResetCodes[email] = { code, expireAt: Date.now() + MOCK_RESET_EXPIRE_MILLIS };
+    return { code, expireSeconds: Math.floor(MOCK_RESET_EXPIRE_MILLIS / 1000) };
+  },
+
+  async confirmPasswordReset(params: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }): Promise<void> {
+    const mode = getAuthMode();
+    const email = params.email.trim().toLowerCase();
+    const code = params.code.trim();
+    const newPassword = params.newPassword;
+    validateEmail(email);
+    if (!code) {
+      throw new Error('Please enter the code.');
+    }
+    validateNewPassword(newPassword);
+
+    if (mode !== 'mock') {
+      try {
+        await httpJson<string>('/user/passwordReset/confirm', {
+          method: 'POST',
+          body: { email, code, newPassword },
+        });
+        return;
+      } catch (e) {
+        if (mode === 'backend') {
+          throw e;
+        }
+      }
+    }
+
+    const entry = mockResetCodes[email];
+    if (!entry) {
+      throw new Error('Please request a code first.');
+    }
+    if (Date.now() > entry.expireAt) {
+      delete mockResetCodes[email];
+      throw new Error('Code expired.');
+    }
+    if (entry.code !== code) {
+      throw new Error('Invalid code.');
+    }
+
+    const users = await getUsers();
+    const idx = users.findIndex((u) => u.email === email);
+    if (idx < 0) {
+      throw new Error('User not found.');
+    }
+
+    const old = users[idx];
+    const next: StoredUser = {
+      ...old,
+      passwordHash: hashPassword(newPassword),
+    };
+    const cloned = [...users];
+    cloned[idx] = next;
+    await setUsers(cloned);
+    delete mockResetCodes[email];
   },
 };

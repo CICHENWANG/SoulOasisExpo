@@ -18,9 +18,9 @@ type Habit = {
 };
 
 const INITIAL: Habit[] = [
-  { id: 'h1', title: '睡前 30 分钟离开屏幕', detail: '让大脑有时间慢下来。', done: false },
-  { id: 'h2', title: '固定起床时间', detail: '比固定入睡更容易坚持。', done: false },
-  { id: 'h3', title: '一杯温水 + 拉伸', detail: '给身体一个“可以休息了”的信号。', done: false },
+  { id: 'h1', title: 'No screens for 30 minutes before bed', detail: 'Give your brain time to slow down.', done: false },
+  { id: 'h2', title: 'Keep a consistent wake-up time', detail: 'It is often easier than forcing a fixed bedtime.', done: false },
+  { id: 'h3', title: 'Warm water + gentle stretching', detail: 'Give your body a signal that it is safe to rest.', done: false },
 ];
 
 export function SleepThemeScreen({}: Props) {
@@ -35,13 +35,13 @@ export function SleepThemeScreen({}: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>睡眠主题</Text>
-        <Text style={styles.subtitle}>把睡眠拆成可执行的小动作，降低焦虑感。</Text>
+        <Text style={styles.title}>Sleep</Text>
+        <Text style={styles.subtitle}>Break sleep into doable micro-habits to reduce anxiety.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>今日习惯</Text>
-        <Text style={styles.muted}>{`完成 ${doneCount} / ${habits.length}`}</Text>
+        <Text style={styles.sectionTitle}>Today's habits</Text>
+        <Text style={styles.muted}>{`Completed ${doneCount} / ${habits.length}`}</Text>
       </Card>
 
       {habits.map((h) => (
@@ -50,7 +50,7 @@ export function SleepThemeScreen({}: Props) {
           <Text style={styles.itemDetail}>{h.detail}</Text>
           <View style={styles.row}>
             <PrimaryButton
-              title={h.done ? '已完成' : '标记完成'}
+              title={h.done ? 'Done' : 'Mark done'}
               variant={h.done ? 'primary' : 'ghost'}
               onPress={() => toggle(h.id)}
               style={styles.flex}
@@ -60,8 +60,10 @@ export function SleepThemeScreen({}: Props) {
       ))}
 
       <Card>
-        <Text style={styles.sectionTitle}>小结</Text>
-        <Text style={styles.muted}>睡眠并不是“必须马上睡着”，而是先把身体放回安全感里。</Text>
+        <Text style={styles.sectionTitle}>Summary</Text>
+        <Text style={styles.muted}>
+          Sleep is not about "falling asleep immediately" - it starts with helping your body return to a sense of safety.
+        </Text>
       </Card>
     </Screen>
   );

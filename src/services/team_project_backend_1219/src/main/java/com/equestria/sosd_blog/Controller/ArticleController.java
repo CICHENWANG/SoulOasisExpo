@@ -25,7 +25,7 @@ public class ArticleController {
     @PostMapping("/postArticleText")
     public Result<String> register(@RequestBody ArticlePostDTO articlePostDTO) {
         String articleId = articleService.postArticleText(articlePostDTO);
-        return Result.success(200,"文章发布成功",articleId);
+        return Result.success(200,"Article published successfully",articleId);
     }
 
     @PostMapping(value = "/postArticleFile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -44,7 +44,7 @@ public class ArticleController {
         articlePostDTO.setUserId(userId);
 
         String articleId = articleService.postArticleFile(articlePostDTO);
-        return Result.success(200,"文章发布成功", articleId);
+        return Result.success(200,"Article published successfully", articleId);
     }
 
 

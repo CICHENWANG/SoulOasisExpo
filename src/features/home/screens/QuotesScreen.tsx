@@ -15,69 +15,69 @@ type Quote = {
   text: string;
   source: string;
   tags: string[];
-  mood: '舒缓' | '鼓励' | '清醒';
+  mood: 'Calm' | 'Encouraging' | 'Grounding';
 };
 
 const QUOTES: Quote[] = [
   {
     id: 'q1',
-    text: '你不是在变得更脆弱，而是在变得更诚实。',
+    text: "You're not becoming more fragile; you're becoming more honest.",
     source: 'Soul Oasis',
-    tags: ['情绪', '自我接纳'],
-    mood: '舒缓',
+    tags: ['Emotion', 'Self-acceptance'],
+    mood: 'Calm',
   },
   {
     id: 'q2',
-    text: '允许自己慢一点，是一种成熟的温柔。',
+    text: 'Allowing yourself to slow down is a mature kind of gentleness.',
     source: 'Soul Oasis',
-    tags: ['节奏', '自我关怀'],
-    mood: '舒缓',
+    tags: ['Pace', 'Self-care'],
+    mood: 'Calm',
   },
   {
     id: 'q3',
-    text: '情绪不是敌人，它只是来提醒你：你很重要。',
+    text: "Emotions aren't the enemy; they're here to remind you that you matter.",
     source: 'Soul Oasis',
-    tags: ['情绪', '觉察'],
-    mood: '清醒',
+    tags: ['Emotion', 'Awareness'],
+    mood: 'Grounding',
   },
   {
     id: 'q4',
-    text: '当你愿意照顾自己，世界也会对你柔软一点。',
+    text: 'When you choose to care for yourself, the world can feel a little softer.',
     source: 'Soul Oasis',
-    tags: ['自我关怀', '生活'],
-    mood: '舒缓',
+    tags: ['Self-care', 'Life'],
+    mood: 'Calm',
   },
   {
     id: 'q5',
-    text: '把今天过好，就已经很厉害了。',
+    text: 'Getting through today is already an achievement.',
     source: 'Soul Oasis',
-    tags: ['鼓励', '坚持'],
-    mood: '鼓励',
+    tags: ['Encouragement', 'Perseverance'],
+    mood: 'Encouraging',
   },
   {
     id: 'q6',
-    text: '你可以害怕，但也可以继续。',
+    text: 'You can be scared—and still keep going.',
     source: 'Soul Oasis',
-    tags: ['勇气', '行动'],
-    mood: '鼓励',
+    tags: ['Courage', 'Action'],
+    mood: 'Encouraging',
   },
   {
     id: 'q7',
-    text: '如果今天很难，就把目标改成：吃饭、喝水、睡觉。',
+    text: 'If today is hard, change the goal to: eat, drink water, sleep.',
     source: 'Soul Oasis',
-    tags: ['睡眠', '身体'],
-    mood: '舒缓',
+    tags: ['Sleep', 'Body'],
+    mood: 'Calm',
   },
   {
     id: 'q8',
-    text: '当你开始照顾自己，你就在重建安全感。',
+    text: "When you start caring for yourself, you're rebuilding a sense of safety.",
     source: 'Soul Oasis',
-    tags: ['安全感', '自我关怀'],
-    mood: '清醒',
+    tags: ['Safety', 'Self-care'],
+    mood: 'Grounding',
   },
 ];
 
-const ALL_TAG = '全部';
+const ALL_TAG = 'All';
 
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
@@ -105,8 +105,8 @@ export function QuotesScreen({}: Props) {
   const isFavorite = favorites.includes(quote.id);
 
   const favoriteCountText = useMemo(() => {
-    if (favorites.length === 0) return '暂未收藏';
-    return `已收藏 ${favorites.length} 条`;
+    if (favorites.length === 0) return 'No favorites yet';
+    return `Saved ${favorites.length}`;
   }, [favorites.length]);
 
   const pickNext = () => {
@@ -135,8 +135,8 @@ export function QuotesScreen({}: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.sectionTitle}>筛选</Text>
-        <Text style={styles.muted}>按标签快速定位更适合当下的语气与主题。</Text>
+        <Text style={styles.sectionTitle}>Filter</Text>
+        <Text style={styles.muted}>Filter by tag to find a tone and theme that fits right now.</Text>
         <View style={styles.tagRow}>
           {tags.map((t) => (
             <PrimaryButton
@@ -156,7 +156,7 @@ export function QuotesScreen({}: Props) {
         <View style={styles.quoteTopRow}>
           <Text style={styles.badge}>{quote.mood}</Text>
           <PrimaryButton
-            title={showFavorites ? '查看当前' : '查看收藏'}
+            title={showFavorites ? 'View current' : 'View favorites'}
             variant="ghost"
             onPress={() => setShowFavorites((v) => !v)}
           />
@@ -165,10 +165,10 @@ export function QuotesScreen({}: Props) {
         <Text style={styles.quoteText}>{quote.text}</Text>
         <Text style={styles.quoteSource}>— {quote.source}</Text>
         <View style={styles.row}>
-          <PrimaryButton title="换一条" onPress={pickNext} style={styles.flex} />
-          <PrimaryButton title="随机" variant="ghost" onPress={pickRandom} style={styles.flex} />
+          <PrimaryButton title="Next" onPress={pickNext} style={styles.flex} />
+          <PrimaryButton title="Random" variant="ghost" onPress={pickRandom} style={styles.flex} />
           <PrimaryButton
-            title={isFavorite ? '已收藏' : '收藏'}
+            title={isFavorite ? 'Saved' : 'Save'}
             variant={isFavorite ? 'primary' : 'ghost'}
             onPress={toggleFavorite}
             style={styles.flex}
@@ -177,7 +177,7 @@ export function QuotesScreen({}: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>收藏</Text>
+        <Text style={styles.sectionTitle}>Favorites</Text>
         <Text style={styles.muted}>{favoriteCountText}</Text>
         {showFavorites && favoriteQuotes.length > 0 ? (
           <View style={styles.favList}>

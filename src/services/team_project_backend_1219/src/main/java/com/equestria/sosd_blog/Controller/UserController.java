@@ -2,6 +2,8 @@ package com.equestria.sosd_blog.Controller;
 
 import cn.dev33.satoken.stp.StpUtil;
 import com.equestria.sosd_blog.Domain.DTO.ChangePasswordDTO;
+import com.equestria.sosd_blog.Domain.DTO.PasswordResetConfirmDTO;
+import com.equestria.sosd_blog.Domain.DTO.PasswordResetRequestDTO;
 import com.equestria.sosd_blog.Domain.DTO.RegisterDTO;
 import com.equestria.sosd_blog.Domain.DTO.UpdateInfoDTO;
 import com.equestria.sosd_blog.Domain.Result.Result;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/user")
 @CrossOrigin
@@ -25,24 +29,39 @@ public class UserController {
     @PostMapping("/register")
     public Result<String> register(@RequestBody RegisterDTO registerDTO) {
         String userId = userService.register(registerDTO);
-        return Result.success(200,"注册成功",userId);
+        return Result.success(200,"Registered",userId);
     }
 
     @RequestMapping("/getMyInfo")
     public Result<MyInfoVO>  getMyInfo() {
-        return Result.success(200,"用户信息如下: ",userService.getMyInfo());
+        return Result.success(200,"OK",userService.getMyInfo());
     }
 
     @RequestMapping("/updateInfo")
     public Result update(@RequestBody UpdateInfoDTO updateInfoDTO) {
         userService.updateInfo(updateInfoDTO);
-        return Result.success(200,"更新成功",null);
+        return Result.success(200,"Updated",null);
     }
 
     @RequestMapping("/changePassword")
     public Result changePassword(@RequestBody ChangePasswordDTO changePasswordDTO){
         userService.changePassword(changePasswordDTO);
-        return Result.success(200,"修改成功",null);
+        return Result.success(200,"Password changed",null);
+    }
+
+    @PostMapping("/passwordReset/request")
+    public Result<Map<String, Object>> requestPasswordReset(
+            @RequestBody PasswordResetRequestDTO passwordResetRequestDTO
+    ) {
+        return Result.success(200, "Code generated", userService.requestPasswordReset(passwordResetRequestDTO));
+    }
+
+    @PostMapping("/passwordReset/confirm")
+    public Result<String> confirmPasswordReset(
+            @RequestBody PasswordResetConfirmDTO passwordResetConfirmDTO
+    ) {
+        userService.confirmPasswordReset(passwordResetConfirmDTO);
+        return Result.success(200, "Password reset", "OK");
     }
 
 

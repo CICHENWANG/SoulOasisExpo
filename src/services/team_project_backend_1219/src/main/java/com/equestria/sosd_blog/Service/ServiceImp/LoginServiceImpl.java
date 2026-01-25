@@ -27,7 +27,7 @@ public class LoginServiceImpl implements LoginService {
         String hash_password = userMapper.getPwByEmail(email);
 
         if (hash_password == null) {
-            return SaResult.error("用户不存在");
+            return SaResult.error("User not found");
         }
 
         if (passwordUtils.check(password, hash_password)) {
@@ -37,10 +37,10 @@ public class LoginServiceImpl implements LoginService {
             Map<String, Object> data = new HashMap<>();
             data.put("userId", userId);
             data.put("token", token);
-            return SaResult.ok("登录成功").setData(data);
+            return SaResult.ok("Login successful").setData(data);
         }
 
-        return SaResult.error("登录失败");
+        return SaResult.error("Login failed");
 
     }
 

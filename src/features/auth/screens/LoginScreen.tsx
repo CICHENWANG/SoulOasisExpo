@@ -18,9 +18,15 @@ import { useAuth } from '../../../app/providers/AuthProvider';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
 export function LoginScreen({ navigation }: Props) {
   const { signIn } = useAuth();
-  const bg = useMemo(() => require('../../../../assets/imgs/start/登陆界面.png'), []);
+  const bg = useMemo(() => require('../../../../assets/imgs/start/auth_bg.png'), []);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,34 +38,35 @@ export function LoginScreen({ navigation }: Props) {
       await signIn({ email, password });
       (navigation.getParent() as any)?.reset?.({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e) {
-      const message = e instanceof Error ? e.message : '登录失败，请稍后重试';
-      Alert.alert('登录失败', message);
+      const message = e instanceof Error ? e.message : 'Login failed. Please try again later.';
+      Alert.alert('Login Failed', message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const onPasskeyLogin = async () => {
-    Alert.alert('暂未实现', 'Passkey/FIDO 登录后续再接入。请先使用邮箱+密码登录。');
+    Alert.alert('Not implemented', 'Passkey sign-in will be added later. Please use email + password for now.');
   };
 
   const onSetupPasskey = async () => {
-    Alert.alert('暂未实现', 'Passkey/FIDO 注册/启用后续再接入。');
+    Alert.alert('Not implemented', 'Passkey setup will be added later.');
   };
 
   return (
     <ImageBackground source={bg} style={styles.bg} resizeMode="cover">
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
+      <View pointerEvents="none" style={styles.overlay} />
       <KeyboardAvoidingView
         style={styles.safe}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.topCard} pointerEvents="none">
-          <Text style={styles.heroTitle}>Hello!</Text>
-          <Text style={styles.heroTitle}>Welcome to Soul Oasis</Text>
-        </View>
-
         <View style={styles.sheet}>
+          <Text style={styles.title}>Sign in</Text>
+          <Text style={styles.subtitle}>Welcome back. Please use your email and password.</Text>
+
+          <View style={styles.sectionGap} />
+
           <Text style={styles.label}>Email</Text>
           <View style={styles.inputRow}>
             <View style={styles.prefix}>
@@ -68,8 +75,8 @@ export function LoginScreen({ navigation }: Props) {
             <View style={styles.prefixDivider} />
             <TextInput
               value={email}
-              onChangeText={setEmail}
-              placeholder="Please input your email"
+              onChangeText={(t) => setEmail(stripCjk(t))}
+              placeholder="Enter your email"
               placeholderTextColor="#B9B0A6"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -84,8 +91,8 @@ export function LoginScreen({ navigation }: Props) {
           <View style={styles.inputRow}>
             <TextInput
               value={password}
-              onChangeText={setPassword}
-              placeholder="Please input password"
+              onChangeText={(t) => setPassword(stripCjk(t))}
+              placeholder="Enter your password"
               placeholderTextColor="#B9B0A6"
               secureTextEntry
               style={styles.input}
@@ -120,7 +127,7 @@ export function LoginScreen({ navigation }: Props) {
               (pressed || isSubmitting) && styles.fidoBtnPressed,
             ]}
           >
-            <Text style={styles.fidoBtnText}>Login with Passkey (FIDO)</Text>
+            <Text style={styles.fidoBtnText}>Login with Passkey</Text>
           </Pressable>
 
           <View style={styles.bottomRow}>
@@ -129,6 +136,12 @@ export function LoginScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('Register')}
             >
               <Text style={styles.linkText}>Create an account</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => navigation.navigate('ForgotPassword')}
+            >
+              <Text style={styles.forgotText}>Forgot password?</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -146,6 +159,10 @@ export function LoginScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   bg: {
     flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   safe: {
     flex: 1,
@@ -165,16 +182,38 @@ const styles = StyleSheet.create({
   },
   sheet: {
     marginHorizontal: 22,
-    marginTop: -92,
-    paddingHorizontal: 22,
-    paddingTop: 28,
-    paddingBottom: 26,
+    marginBottom: 18,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 16,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.7)',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 10,
   },
-  label: {
-    fontSize: 20,
+  title: {
+    fontSize: 22,
     fontWeight: '900',
     color: '#1B1B1B',
-    marginBottom: 10,
+    letterSpacing: 0.2,
+  },
+  subtitle: {
+    marginTop: 6,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    color: '#7A6F66',
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1B1B1B',
+    marginBottom: 8,
   },
   inputRow: {
     flexDirection: 'row',
@@ -183,6 +222,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     height: 54,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
   },
   prefix: {
     flexDirection: 'row',
@@ -206,17 +250,22 @@ const styles = StyleSheet.create({
     color: '#3A3A3A',
   },
   sectionGap: {
-    height: 18,
+    height: 14,
   },
   sectionBigGap: {
-    height: 36,
+    height: 20,
   },
   primaryBtn: {
     height: 56,
     borderRadius: 18,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 7,
   },
   primaryBtnPressed: {
     opacity: 0.85,
@@ -224,7 +273,7 @@ const styles = StyleSheet.create({
   primaryBtnText: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#1B1B1B',
+    color: '#FFFFFF',
   },
   fidoBtn: {
     height: 52,
@@ -247,7 +296,10 @@ const styles = StyleSheet.create({
     marginTop: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    columnGap: 12,
+    rowGap: 8,
   },
   linkText: {
     fontSize: 13,

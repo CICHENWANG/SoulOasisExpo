@@ -34,6 +34,7 @@ type AuthContextValue = {
 
 const AUTH_USER_KEY = 'auth:user';
 const AUTH_TOKEN_KEY = 'auth:access_token';
+const AUTH_BYPASS = (process.env.EXPO_PUBLIC_AUTH_BYPASS ?? '').toLowerCase() === 'true';
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -45,6 +46,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const load = async () => {
       try {
+        if (AUTH_BYPASS) {
+          const createdAt = new Date().toISOString();
+          setUser({ id: '1', email: 'dev@example.com', displayName: 'dev', createdAt });
+          setAccessToken('dev');
+          return;
+        }
+
         const [userRaw, tokenRaw] = await Promise.all([
           AsyncStorage.getItem(AUTH_USER_KEY),
           AsyncStorage.getItem(AUTH_TOKEN_KEY),
@@ -65,6 +73,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (params: { email: string; password: string }) => {
+      if (AUTH_BYPASS) {
+        const createdAt = new Date().toISOString();
+        const bypassUser: AuthUser = {
+          id: '1',
+          email: params.email.trim() || 'dev@example.com',
+          displayName: 'dev',
+          createdAt,
+        };
+        setUser(bypassUser);
+        setAccessToken('dev');
+        await Promise.all([
+          AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(bypassUser)),
+          AsyncStorage.setItem(AUTH_TOKEN_KEY, 'dev'),
+        ]);
+        return;
+      }
+
       const result = await authApi.login(params);
       setUser(result.user);
       setAccessToken(result.accessToken);
@@ -88,6 +113,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = useCallback(
     async (params: { email: string; password: string; displayName: string }) => {
+      if (AUTH_BYPASS) {
+        const createdAt = new Date().toISOString();
+        const bypassUser: AuthUser = {
+          id: '1',
+          email: params.email.trim() || 'dev@example.com',
+          displayName: params.displayName.trim() || 'dev',
+          createdAt,
+        };
+        setUser(bypassUser);
+        setAccessToken('dev');
+        await Promise.all([
+          AsyncStorage.setItem(AUTH_USER_KEY, JSON.stringify(bypassUser)),
+          AsyncStorage.setItem(AUTH_TOKEN_KEY, 'dev'),
+        ]);
+        return;
+      }
+
       const result = await authApi.register(params);
       setUser(result.user);
       setAccessToken(result.accessToken);

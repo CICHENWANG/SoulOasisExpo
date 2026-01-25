@@ -1,4 +1,4 @@
-CREATE DATABASE IF NOT EXISTS sosd_blogs DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS sosd_blogs DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 USE sosd_blogs;
 
@@ -33,4 +33,35 @@ CREATE TABLE IF NOT EXISTS articles (
   update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_articles_user_id (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS notes (
+  id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  content_markdown MEDIUMTEXT NOT NULL,
+  content_html MEDIUMTEXT NOT NULL,
+  author VARCHAR(50) NOT NULL,
+  cover_url VARCHAR(500) DEFAULT NULL,
+  like_count BIGINT NOT NULL DEFAULT 0,
+  comment_count BIGINT NOT NULL DEFAULT 0,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  PRIMARY KEY (id),
+  KEY idx_notes_user_id (user_id),
+  KEY idx_notes_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS note_comments (
+  id BIGINT NOT NULL,
+  note_id BIGINT NOT NULL,
+  user_id BIGINT NOT NULL,
+  author VARCHAR(50) NOT NULL,
+  content VARCHAR(1000) NOT NULL,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status VARCHAR(30) NOT NULL DEFAULT 'active',
+  PRIMARY KEY (id),
+  KEY idx_note_comments_note_id (note_id),
+  KEY idx_note_comments_create_time (create_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

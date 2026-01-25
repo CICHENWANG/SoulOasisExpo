@@ -20,20 +20,20 @@ type ActionItem = {
 const INITIAL: ActionItem[] = [
   {
     id: 'r1',
-    title: '说清楚需求',
-    detail: '用“我需要…”开头，避免指责式表达。',
+    title: 'State your needs clearly',
+    detail: 'Start with "I need..." and avoid blaming language.',
     done: false,
   },
   {
     id: 'r2',
-    title: '设定边界',
-    detail: '边界不是拒绝，是对关系的保护。',
+    title: 'Set boundaries',
+    detail: "Boundaries aren't rejection - they protect the relationship.",
     done: false,
   },
   {
     id: 'r3',
-    title: '给关系留空间',
-    detail: '允许沉默，也允许慢慢靠近。',
+    title: 'Leave space in the relationship',
+    detail: 'Allow silence, and allow closeness to build slowly.',
     done: false,
   },
 ];
@@ -50,22 +50,22 @@ export function RelationshipThemeScreen({ navigation }: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>人际关系主题</Text>
-        <Text style={styles.subtitle}>关系里也要把自己放在重要的位置。</Text>
+        <Text style={styles.title}>Relationships</Text>
+        <Text style={styles.subtitle}>In relationships, you deserve an important place too.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>今日练习</Text>
-        <Text style={styles.muted}>{`完成 ${doneCount} / ${items.length}`}</Text>
+        <Text style={styles.sectionTitle}>Today's practice</Text>
+        <Text style={styles.muted}>{`Completed ${doneCount} / ${items.length}`}</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="呼吸训练"
+            title="Breathing"
             variant="ghost"
             onPress={() => navigation.navigate('BreathingTraining')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="冥想引导"
+            title="Meditation"
             variant="ghost"
             onPress={() => navigation.navigate('MeditationGuide')}
             style={styles.flex}
@@ -79,7 +79,7 @@ export function RelationshipThemeScreen({ navigation }: Props) {
           <Text style={styles.itemDetail}>{x.detail}</Text>
           <View style={styles.row}>
             <PrimaryButton
-              title={x.done ? '已尝试' : '标记已尝试'}
+              title={x.done ? 'Tried' : 'Mark as tried'}
               variant={x.done ? 'primary' : 'ghost'}
               onPress={() => toggle(x.id)}
               style={styles.flex}
@@ -89,8 +89,8 @@ export function RelationshipThemeScreen({ navigation }: Props) {
       ))}
 
       <Card>
-        <Text style={styles.sectionTitle}>一句话提醒</Text>
-        <Text style={styles.muted}>好的关系，会让你更像自己，而不是更怕自己。</Text>
+        <Text style={styles.sectionTitle}>Reminder</Text>
+        <Text style={styles.muted}>A good relationship helps you be more yourself - not more afraid of yourself.</Text>
       </Card>
     </Screen>
   );

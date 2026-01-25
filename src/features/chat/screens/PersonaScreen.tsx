@@ -20,30 +20,30 @@ type Persona = {
 const PERSONAS: Persona[] = [
   {
     id: 'p1',
-    name: '温柔陪伴',
-    style: '更注重情绪安抚与接纳',
-    sample: '我在这里，慢慢说也没关系。',
+    name: 'Gentle companion',
+    style: 'Focuses on emotional soothing and acceptance',
+    sample: "I'm here with you. Take your time.",
   },
   {
     id: 'p2',
-    name: '结构教练',
-    style: '更注重拆解问题与行动建议',
-    sample: '我们先把问题拆成三步，然后选最小的一步开始。',
+    name: 'Structured coach',
+    style: 'Focuses on breaking down problems and actionable steps',
+    sample: "Let's break this into three steps, then start with the smallest one.",
   },
   {
     id: 'p3',
-    name: '简短直接',
-    style: '更注重快速结论与要点',
-    sample: '我理解。你现在最需要的是：休息 + 具体计划。',
+    name: 'Short & direct',
+    style: 'Focuses on fast conclusions and key points',
+    sample: 'Got it. What you need most right now is: rest + a concrete plan.',
   },
 ];
 
 export function PersonaScreen({ navigation }: Props) {
   const [selectedId, setSelectedId] = useState(PERSONAS[0].id);
-  const [tone, setTone] = useState<'温柔' | '理性' | '直接'>('温柔');
-  const [length, setLength] = useState<'简短' | '适中' | '详细'>('适中');
-  const [pace, setPace] = useState<'慢一点' | '正常' | '快一点'>('正常');
-  const [boundary, setBoundary] = useState<'更尊重隐私' | '更积极追问'>('更尊重隐私');
+  const [tone, setTone] = useState<'Gentle' | 'Rational' | 'Direct'>('Gentle');
+  const [length, setLength] = useState<'Brief' | 'Balanced' | 'Detailed'>('Balanced');
+  const [pace, setPace] = useState<'Slower' | 'Normal' | 'Faster'>('Normal');
+  const [boundary, setBoundary] = useState<'Privacy-first' | 'More probing'>('Privacy-first');
 
   const selected = useMemo(
     () => PERSONAS.find((p) => p.id === selectedId) ?? PERSONAS[0],
@@ -51,18 +51,18 @@ export function PersonaScreen({ navigation }: Props) {
   );
 
   const summary = useMemo(() => {
-    return `风格：${selected.name} · 语气：${tone} · 详略：${length} · 节奏：${pace} · 边界：${boundary}`;
+    return `Style: ${selected.name} · Tone: ${tone} · Detail: ${length} · Pace: ${pace} · Boundary: ${boundary}`;
   }, [selected.name, tone, length, pace, boundary]);
 
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>自定义 AI 形象</Text>
-        <Text style={styles.subtitle}>用于展示“偏好配置”页面结构（本地模拟）。</Text>
+        <Text style={styles.title}>Customize AI persona</Text>
+        <Text style={styles.subtitle}>A local mock to demonstrate a preferences screen.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>选择风格</Text>
+        <Text style={styles.sectionTitle}>Choose a style</Text>
         <View style={styles.stack}>
           {PERSONAS.map((p) => (
             <PrimaryButton
@@ -76,12 +76,12 @@ export function PersonaScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>偏好设置</Text>
-        <Text style={styles.subtitle}>用于展示可配置项结构，后续可落到后端保存。</Text>
+        <Text style={styles.sectionTitle}>Preferences</Text>
+        <Text style={styles.subtitle}>A mock of configurable items. Later this can be saved to the backend.</Text>
 
-        <Text style={styles.subLabel}>语气</Text>
+        <Text style={styles.subLabel}>Tone</Text>
         <View style={styles.row}>
-          {(['温柔', '理性', '直接'] as const).map((t) => (
+          {(['Gentle', 'Rational', 'Direct'] as const).map((t) => (
             <PrimaryButton
               key={t}
               title={t}
@@ -92,9 +92,9 @@ export function PersonaScreen({ navigation }: Props) {
           ))}
         </View>
 
-        <Text style={styles.subLabel}>回答长度</Text>
+        <Text style={styles.subLabel}>Answer length</Text>
         <View style={styles.row}>
-          {(['简短', '适中', '详细'] as const).map((t) => (
+          {(['Brief', 'Balanced', 'Detailed'] as const).map((t) => (
             <PrimaryButton
               key={t}
               title={t}
@@ -105,9 +105,9 @@ export function PersonaScreen({ navigation }: Props) {
           ))}
         </View>
 
-        <Text style={styles.subLabel}>节奏</Text>
+        <Text style={styles.subLabel}>Pace</Text>
         <View style={styles.row}>
-          {(['慢一点', '正常', '快一点'] as const).map((t) => (
+          {(['Slower', 'Normal', 'Faster'] as const).map((t) => (
             <PrimaryButton
               key={t}
               title={t}
@@ -118,9 +118,9 @@ export function PersonaScreen({ navigation }: Props) {
           ))}
         </View>
 
-        <Text style={styles.subLabel}>边界</Text>
+        <Text style={styles.subLabel}>Boundaries</Text>
         <View style={styles.row}>
-          {(['更尊重隐私', '更积极追问'] as const).map((t) => (
+          {(['Privacy-first', 'More probing'] as const).map((t) => (
             <PrimaryButton
               key={t}
               title={t}
@@ -133,11 +133,11 @@ export function PersonaScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>示例语气</Text>
+        <Text style={styles.sectionTitle}>Example</Text>
         <Text style={styles.sample}>{selected.sample}</Text>
         <Text style={styles.summary}>{summary}</Text>
         <View style={styles.row}>
-          <PrimaryButton title="返回聊天" onPress={() => navigation.navigate('ChatHome')} />
+          <PrimaryButton title="Back to chat" onPress={() => navigation.navigate('ChatHome')} />
         </View>
       </Card>
     </Screen>

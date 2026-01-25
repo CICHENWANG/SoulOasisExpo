@@ -13,14 +13,16 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { HomeStackParamList } from '../../../app/navigation/types';
 import { useSkin } from '../../../app/providers/SkinProvider';
+import { useStress } from '../../../app/providers/StressProvider';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
   const { skinSource } = useSkin();
+  const { stress01, setStress01 } = useStress();
   const { width: winW, height: winH } = useWindowDimensions();
-  const bgGood = useMemo(() => require('../../../../assets/home/首页(ai形象） (3).png'), []);
-  const bgBad = useMemo(() => require('../../../../assets/home/首页(ai形象） (5).png'), []);
+  const bgGood = useMemo(() => require('../../../../assets/home/home_bg_good.png'), []);
+  const bgBad = useMemo(() => require('../../../../assets/home/home_bg_bad.png'), []);
   const quickClothes = useMemo(() => require('../../../../assets/home/Group 32.png'), []);
   const quickMood = useMemo(() => require('../../../../assets/home/Group 21.png'), []);
   const quickNotes = useMemo(() => require('../../../../assets/home/Group 22.png'), []);
@@ -28,7 +30,7 @@ export function HomeScreen({ navigation }: Props) {
   const knobHappy = useMemo(() => require('../../../../assets/home/Group 24.png'), []);
   const knobAngry = useMemo(() => require('../../../../assets/home/Group 23.png'), []);
 
-  const [mood, setMood] = useState(0.08);
+  const [mood, setMood] = useState(stress01);
   const [trackWidth, setTrackWidth] = useState(0);
 
   const moodRef = useRef(mood);
@@ -38,6 +40,10 @@ export function HomeScreen({ navigation }: Props) {
   useEffect(() => {
     moodRef.current = mood;
   }, [mood]);
+
+  useEffect(() => {
+    setMood(stress01);
+  }, [stress01]);
 
   useEffect(() => {
     trackWidthRef.current = trackWidth;
@@ -52,6 +58,7 @@ export function HomeScreen({ navigation }: Props) {
     if (usableWidth <= 0) return;
     const next = clamp01((x - knobSize / 2) / usableWidth);
     setMood(next);
+    void setStress01(next);
   };
 
   const knobLeft = mood * usableWidth;
@@ -71,6 +78,7 @@ export function HomeScreen({ navigation }: Props) {
           if (usable <= 0) return;
           const next = clamp01(dragStartMoodRef.current + gestureState.dx / usable);
           setMood(next);
+          void setStress01(next);
         },
       }),
     [],

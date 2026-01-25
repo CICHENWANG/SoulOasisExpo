@@ -34,7 +34,7 @@ export function MoodCalendarScreen({ navigation }: Props) {
           >
             <Text style={styles.backText}>{'‹'}</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>心情月历（数据分析）</Text>
+          <Text style={styles.headerTitle}>Mood calendar (Analytics)</Text>
           <View style={styles.headerRight} />
         </View>
 

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.equestria.sosd_blog.Mapper.NoteMapper">
+
+    <insert id="postNote" parameterType="com.equestria.sosd_blog.Domain.DTO.NotePostDTO" useGeneratedKeys="false">
+        insert into notes
+        (id, user_id, title, content_markdown, content_html, author, cover_url, like_count, comment_count, create_time, update_time, status)
+        values(#{id},#{userId},#{title},#{contentText},#{contentHtml},#{author},#{coverUrl},0,0,NOW(),NOW(),'active')
+    </insert>
+
+    <select id="listNotes" resultType="com.equestria.sosd_blog.Domain.VO.NoteListItemVO">
+        select
+        id,
+        title,
+        author,
+        cover_url as coverUrl,
+        like_count as likeCount,
+        comment_count as commentCount,
+        create_time as createTime
+        from notes
+        where status = 'active'
+        <if test="keyword != null and keyword != ''">
+            and (
+                title like concat('%', #{keyword}, '%')
+                or content_markdown like concat('%', #{keyword}, '%')
+            )
+        </if>
+        order by create_time desc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="getNoteDetail" resultType="com.equestria.sosd_blog.Domain.VO.NoteDetailVO">
+        select
+        id,
+        user_id as userId,
+        title,
+        content_markdown as contentMarkdown,
+        content_html as contentHtml,
+        author,
+        cover_url as coverUrl,
+        like_count as likeCount,
+        comment_count as commentCount,
+        create_time as createTime
+        from notes
+        where id = #{noteId} and status = 'active'
+        limit 1
+    </select>
+
+    <select id="listNoteComments" resultType="com.equestria.sosd_blog.Domain.VO.NoteCommentVO">
+        select
+        id,
+        note_id as noteId,
+        user_id as userId,
+        author,
+        content,
+        create_time as createTime
+        from note_comments
+        where note_id = #{noteId} and status = 'active'
+        order by create_time asc
+        limit #{offset}, #{limit}
+    </select>
+
+    <insert id="addNoteComment" parameterType="com.equestria.sosd_blog.Domain.DTO.NoteCommentCreateDTO" useGeneratedKeys="false">
+        insert into note_comments
+        (id, note_id, user_id, author, content, create_time, status)
+        values(#{id},#{noteId},#{userId},#{author},#{content},NOW(),'active')
+    </insert>
+
+    <update id="incNoteCommentCount">
+        update notes
+        set comment_count = comment_count + 1, update_time = NOW()
+        where id = #{noteId}
+    </update>
+
+    <select id="countActiveNotes" resultType="java.lang.Integer">
+        select count(*)
+        from notes
+        where status = 'active'
+    </select>
+
+    <update id="backfillMissingCoverUrls">
+        update notes
+        set cover_url = concat('https://picsum.photos/seed/note-', id, '/800/600'),
+            update_time = NOW()
+        where status = 'active'
+          and (cover_url is null or cover_url = '')
+    </update>
+
+</mapper>

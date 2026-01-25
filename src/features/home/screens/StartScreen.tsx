@@ -11,7 +11,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Start'>;
 
 export function StartScreen({ navigation }: Props) {
   const { user } = useAuth();
-  const splash = useMemo(() => require('../../../../assets/imgs/start/开屏.png'), []);
+  const splash = useMemo(() => require('../../../../assets/imgs/start/splash.png'), []);
   const buttonImg = useMemo(() => require('../../../../assets/imgs/start/Component 1.png'), []);
 
   const nextRouteName = user ? 'Main' : 'Auth';

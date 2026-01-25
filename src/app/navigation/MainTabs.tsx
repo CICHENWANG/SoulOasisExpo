@@ -23,21 +23,26 @@ import { RelationshipThemeScreen } from '../../features/healing/screens/Relation
 import { SleepThemeScreen } from '../../features/healing/screens/SleepThemeScreen';
 import { StudyThemeScreen } from '../../features/healing/screens/StudyThemeScreen';
 import { CommunityScreen } from '../../features/community/screens/CommunityScreen';
+import { NoteDetailScreen } from '../../features/community/screens/NoteDetailScreen';
+import { PostNoteScreen } from '../../features/community/screens/PostNoteScreen';
 import { SkinScreen } from '../../features/home/screens/SkinScreen';
 import { MineScreen } from '../../features/mine/screens/MineScreen';
 import { MoodCalendarScreen } from '../../features/date/screens/MoodCalendarScreen';
 
 import {
   ChatStackParamList,
+  CommunityStackParamList,
   HealingStackParamList,
   HomeStackParamList,
   MainTabParamList,
 } from './types';
+import { colors } from '../../ui/theme/colors';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
 const HealingStack = createNativeStackNavigator<HealingStackParamList>();
 const ChatStack = createNativeStackNavigator<ChatStackParamList>();
+const CommunityStack = createNativeStackNavigator<CommunityStackParamList>();
 
 const iconHealing = require('../../../assets/bar/Frame.png');
 const iconCommunity = require('../../../assets/bar/People Working Together.png');
@@ -50,24 +55,24 @@ const TAB_ICON_WRAP_SIZE_ACTIVE = 32;
 function HomeStackNavigator() {
   return (
     <HomeStack.Navigator screenOptions={{ headerShown: false }}>
-      <HomeStack.Screen name="Home" component={HomeScreen} options={{ title: '首页' }} />
-      <HomeStack.Screen name="Quotes" component={QuotesScreen} options={{ title: '治愈语录' }} />
+      <HomeStack.Screen name="Home" component={HomeScreen} options={{ title: 'Home' }} />
+      <HomeStack.Screen name="Quotes" component={QuotesScreen} options={{ title: 'Quotes' }} />
       <HomeStack.Screen
         name="ActiveCare"
         component={ActiveCareScreen}
-        options={{ title: '主动关怀' }}
+        options={{ title: 'Active Care' }}
       />
       <HomeStack.Screen
         name="Visualization"
         component={VisualizationScreen}
-        options={{ title: '数据可视化' }}
+        options={{ title: 'Insights' }}
       />
       <HomeStack.Screen
         name="MoodCalendar"
         component={MoodCalendarScreen}
-        options={{ title: '心情月历' }}
+        options={{ title: 'Mood Calendar' }}
       />
-      <HomeStack.Screen name="Skin" component={SkinScreen} options={{ title: '换肤' }} />
+      <HomeStack.Screen name="Skin" component={SkinScreen} options={{ title: 'Avatar' }} />
     </HomeStack.Navigator>
   );
 }
@@ -78,7 +83,11 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const activeRoute = state.routes[state.index];
   const focusedRouteName = getFocusedRouteNameFromRoute(activeRoute as any);
   const shouldHideTabBar =
-    activeRoute.name === 'HealingTab' || focusedRouteName === 'MoodCalendar' || focusedRouteName === 'Skin';
+    activeRoute.name === 'HealingTab' ||
+    focusedRouteName === 'MoodCalendar' ||
+    focusedRouteName === 'Skin' ||
+    focusedRouteName === 'NoteDetail' ||
+    focusedRouteName === 'PostNote';
 
   if (shouldHideTabBar) {
     return null;
@@ -117,7 +126,7 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             });
           };
 
-          const color = isFocused ? '#FFFFFF' : '#F29B1A';
+          const color = isFocused ? colors.primaryText : colors.primary;
 
           const renderIcon = () => {
             if (route.name === 'HealingTab') {
@@ -182,32 +191,32 @@ function HealingStackNavigator() {
       <HealingStack.Screen
         name="HealingHub"
         component={HealingHubScreen}
-        options={{ title: '疗愈' }}
+        options={{ title: 'Healing' }}
       />
       <HealingStack.Screen
         name="SleepTheme"
         component={SleepThemeScreen}
-        options={{ title: '睡眠主题' }}
+        options={{ title: 'Sleep' }}
       />
       <HealingStack.Screen
         name="StudyTheme"
         component={StudyThemeScreen}
-        options={{ title: '学业主题' }}
+        options={{ title: 'Study' }}
       />
       <HealingStack.Screen
         name="RelationshipTheme"
         component={RelationshipThemeScreen}
-        options={{ title: '人际关系主题' }}
+        options={{ title: 'Relationships' }}
       />
       <HealingStack.Screen
         name="BreathingTraining"
         component={BreathingTrainingScreen}
-        options={{ title: '呼吸训练' }}
+        options={{ title: 'Breathing' }}
       />
       <HealingStack.Screen
         name="MeditationGuide"
         component={MeditationGuideScreen}
-        options={{ title: '冥想引导' }}
+        options={{ title: 'Meditation' }}
       />
     </HealingStack.Navigator>
   );
@@ -219,24 +228,46 @@ function ChatStackNavigator() {
       <ChatStack.Screen
         name="ChatHome"
         component={ChatHomeScreen}
-        options={{ title: 'AI聊天' }}
+        options={{ title: 'AI Chat' }}
       />
       <ChatStack.Screen
         name="Persona"
         component={PersonaScreen}
-        options={{ title: '自定义AI形象' }}
+        options={{ title: 'AI Persona' }}
       />
       <ChatStack.Screen
         name="ChatHistory"
         component={ChatHistoryScreen}
-        options={{ title: '历史对话' }}
+        options={{ title: 'Chat History' }}
       />
       <ChatStack.Screen
         name="VoiceChat"
         component={VoiceChatScreen}
-        options={{ title: '语音沟通' }}
+        options={{ title: 'Voice Chat' }}
       />
     </ChatStack.Navigator>
+  );
+}
+
+function CommunityStackNavigator() {
+  return (
+    <CommunityStack.Navigator screenOptions={{ headerShown: false }}>
+      <CommunityStack.Screen
+        name="CommunityFeed"
+        component={CommunityScreen}
+        options={{ title: 'Community' }}
+      />
+      <CommunityStack.Screen
+        name="NoteDetail"
+        component={NoteDetailScreen}
+        options={{ title: 'Note Detail' }}
+      />
+      <CommunityStack.Screen
+        name="PostNote"
+        component={PostNoteScreen}
+        options={{ title: 'New Post' }}
+      />
+    </CommunityStack.Navigator>
   );
 }
 
@@ -247,9 +278,9 @@ export function MainTabs() {
       tabBar={(props) => <AppTabBar {...props} />}
     >
       <Tab.Screen name="HomeTab" component={HomeStackNavigator} options={{ title: 'Home' }} />
-      <Tab.Screen name="HealingTab" component={ChatStackNavigator} options={{ title: 'AI' }} />
-      <Tab.Screen name="CommunityTab" component={CommunityScreen} options={{ title: 'Community' }} />
-      <Tab.Screen name="MineTab" component={MineScreen} options={{ title: 'Mine' }} />
+      <Tab.Screen name="HealingTab" component={ChatStackNavigator} options={{ title: 'Healing' }} />
+      <Tab.Screen name="CommunityTab" component={CommunityStackNavigator} options={{ title: 'Community' }} />
+      <Tab.Screen name="MineTab" component={MineScreen} options={{ title: 'Me' }} />
     </Tab.Navigator>
   );
 }
@@ -265,7 +296,7 @@ const styles = StyleSheet.create({
   },
   tabBarInner: {
     width: '100%',
-    backgroundColor: '#FDEFD9',
+    backgroundColor: colors.panel,
     borderRadius: 26,
     flexDirection: 'row',
     alignItems: 'center',
@@ -286,7 +317,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
   },
   tabItemActive: {
-    backgroundColor: '#F7C98A',
+    backgroundColor: colors.primarySoft,
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 10,

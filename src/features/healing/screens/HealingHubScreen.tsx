@@ -10,7 +10,7 @@ import { colors } from '../../../ui/theme/colors';
 
 type Props = NativeStackScreenProps<HealingStackParamList, 'HealingHub'>;
 
-type Mood = '平稳' | '疲惫' | '焦虑';
+type Mood = 'Stable' | 'Tired' | 'Anxious';
 
 type PlanItem = {
   id: string;
@@ -20,19 +20,19 @@ type PlanItem = {
 };
 
 export function HealingHubScreen({ navigation }: Props) {
-  const [mood, setMood] = useState<Mood>('平稳');
+  const [mood, setMood] = useState<Mood>('Stable');
   const [plan, setPlan] = useState<PlanItem[]>([
-    { id: 'h1', title: '呼吸训练 1 轮', detail: '稳定身体信号', done: false },
-    { id: 'h2', title: '冥想 3-5 分钟', detail: '放下反复思考', done: false },
-    { id: 'h3', title: '选择一个主题', detail: '睡眠/学业/关系三选一', done: false },
+    { id: 'h1', title: 'Breathing practice (1 round)', detail: 'Stabilize body signals', done: false },
+    { id: 'h2', title: 'Meditation (3-5 minutes)', detail: 'Let go of looping thoughts', done: false },
+    { id: 'h3', title: 'Pick a theme', detail: 'Sleep / Study / Relationships (choose 1)', done: false },
   ]);
 
   const doneCount = useMemo(() => plan.filter((x) => x.done).length, [plan]);
 
   const suggestion = useMemo(() => {
-    if (mood === '疲惫') return '优先睡眠主题：把目标缩小到“今晚更好入睡一点”。';
-    if (mood === '焦虑') return '先做 2 分钟呼吸训练，再决定要不要进入主题。';
-    return '从一个主题开始，坚持 7 天会更有感。';
+    if (mood === 'Tired') return 'Start with Sleep: shrink the goal to “fall asleep a bit easier tonight.”';
+    if (mood === 'Anxious') return 'Do 2 minutes of breathing first, then decide whether to enter a theme.';
+    return 'Start with one theme. Sticking with it for 7 days usually helps.';
   }, [mood]);
 
   const togglePlan = (id: string) => {
@@ -42,30 +42,32 @@ export function HealingHubScreen({ navigation }: Props) {
   return (
     <Screen>
       <View style={styles.header}>
-        <Text style={styles.title}>疗愈中心</Text>
-        <Text style={styles.subtitle}>从主题计划到日常练习，帮助你把情绪照顾得更具体。</Text>
+        <Text style={styles.title}>Healing hub</Text>
+        <Text style={styles.subtitle}>
+          From themed plans to daily practice, helping you take care of your emotions in a more concrete way.
+        </Text>
       </View>
 
       <Card>
-        <Text style={styles.sectionTitle}>今日状态</Text>
-        <Text style={styles.muted}>{`当前：${mood}`}</Text>
+        <Text style={styles.sectionTitle}>Today's mood</Text>
+        <Text style={styles.muted}>{`Current: ${mood}`}</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="平稳"
-            variant={mood === '平稳' ? 'primary' : 'ghost'}
-            onPress={() => setMood('平稳')}
+            title="Stable"
+            variant={mood === 'Stable' ? 'primary' : 'ghost'}
+            onPress={() => setMood('Stable')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="疲惫"
-            variant={mood === '疲惫' ? 'primary' : 'ghost'}
-            onPress={() => setMood('疲惫')}
+            title="Tired"
+            variant={mood === 'Tired' ? 'primary' : 'ghost'}
+            onPress={() => setMood('Tired')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="焦虑"
-            variant={mood === '焦虑' ? 'primary' : 'ghost'}
-            onPress={() => setMood('焦虑')}
+            title="Anxious"
+            variant={mood === 'Anxious' ? 'primary' : 'ghost'}
+            onPress={() => setMood('Anxious')}
             style={styles.flex}
           />
         </View>
@@ -73,41 +75,41 @@ export function HealingHubScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>主题入口</Text>
+        <Text style={styles.sectionTitle}>Themes</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="睡眠主题"
+            title="Sleep"
             onPress={() => navigation.navigate('SleepTheme')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="学业主题"
+            title="Study"
             variant="ghost"
             onPress={() => navigation.navigate('StudyTheme')}
             style={styles.flex}
           />
         </View>
         <PrimaryButton
-          title="人际关系主题"
+          title="Relationships"
           variant="ghost"
           onPress={() => navigation.navigate('RelationshipTheme')}
         />
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>快速练习</Text>
+        <Text style={styles.sectionTitle}>Quick practice</Text>
         <Text style={styles.muted}>
-          练习用于帮助你在 1-3 分钟内稳定状态，后续可扩展为音频/动画引导。
+          These practices help you stabilize in 1-3 minutes. Later we can expand them with audio or animated guidance.
         </Text>
         <View style={styles.row}>
           <PrimaryButton
-            title="呼吸训练"
+            title="Breathing"
             variant="ghost"
             onPress={() => navigation.navigate('BreathingTraining')}
             style={styles.flex}
           />
           <PrimaryButton
-            title="冥想引导"
+            title="Meditation"
             variant="ghost"
             onPress={() => navigation.navigate('MeditationGuide')}
             style={styles.flex}
@@ -116,8 +118,8 @@ export function HealingHubScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>今日计划</Text>
-        <Text style={styles.muted}>{`完成 ${doneCount} / ${plan.length}`}</Text>
+        <Text style={styles.sectionTitle}>Today's plan</Text>
+        <Text style={styles.muted}>{`Completed ${doneCount} / ${plan.length}`}</Text>
         <View style={styles.planList}>
           {plan.map((x) => (
             <View key={x.id} style={styles.planItem}>
@@ -126,7 +128,7 @@ export function HealingHubScreen({ navigation }: Props) {
                 <Text style={styles.planDetail}>{x.detail}</Text>
               </View>
               <PrimaryButton
-                title={x.done ? '已完成' : '完成'}
+                title={x.done ? 'Done' : 'Complete'}
                 variant={x.done ? 'primary' : 'ghost'}
                 onPress={() => togglePlan(x.id)}
               />
@@ -136,9 +138,9 @@ export function HealingHubScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>建议</Text>
+        <Text style={styles.sectionTitle}>Suggestion</Text>
         <Text style={styles.muted}>
-          先选一个你最在意的主题，坚持 7 天做小调整，比一次性改变所有更可持续。
+          Pick the theme you care about most and make small adjustments for 7 days. It's more sustainable than changing everything at once.
         </Text>
       </Card>
     </Screen>

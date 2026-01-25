@@ -129,7 +129,7 @@ export function SkinScreen({ navigation }: Props) {
             onPress={confirm}
             style={({ pressed }) => [styles.confirmBtn, pressed && styles.confirmBtnPressed]}
           >
-            <Text style={styles.confirmText}>Certain</Text>
+            <Text style={styles.confirmText}>Confirm</Text>
           </Pressable>
         </View>
       </View>

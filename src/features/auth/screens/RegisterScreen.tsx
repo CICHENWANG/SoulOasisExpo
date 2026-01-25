@@ -20,10 +20,16 @@ import { useSkin } from '../../../app/providers/SkinProvider';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Register'>;
 
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
 export function RegisterScreen({ navigation }: Props) {
   const { register, enableFido } = useAuth();
   const { skins, skinId, setSkinId } = useSkin();
-  const bg = useMemo(() => require('../../../../assets/imgs/start/登陆界面.png'), []);
+  const bg = useMemo(() => require('../../../../assets/imgs/start/auth_bg.png'), []);
 
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -42,8 +48,8 @@ export function RegisterScreen({ navigation }: Props) {
       }
       (navigation.getParent() as any)?.reset?.({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e) {
-      const message = e instanceof Error ? e.message : '注册失败，请稍后重试';
-      Alert.alert('注册失败', message);
+      const message = e instanceof Error ? e.message : 'Registration failed. Please try again later.';
+      Alert.alert('Registration Failed', message);
     } finally {
       setIsSubmitting(false);
     }
@@ -85,12 +91,12 @@ export function RegisterScreen({ navigation }: Props) {
         </View>
 
         <View style={styles.sheet}>
-          <Text style={styles.label}>Nickname</Text>
+          <Text style={styles.label}>Name</Text>
           <View style={styles.inputRow}>
             <TextInput
               value={displayName}
-              onChangeText={setDisplayName}
-              placeholder="Please input your name"
+              onChangeText={(t) => setDisplayName(stripCjk(t))}
+              placeholder="Enter your name"
               placeholderTextColor="#B9B0A6"
               style={styles.input}
               editable={!isSubmitting}
@@ -99,12 +105,12 @@ export function RegisterScreen({ navigation }: Props) {
 
           <View style={styles.sectionGap} />
 
-          <Text style={styles.label}>Account</Text>
+          <Text style={styles.label}>Email</Text>
           <View style={styles.inputRow}>
             <TextInput
               value={email}
-              onChangeText={setEmail}
-              placeholder="Please input your email"
+              onChangeText={(t) => setEmail(stripCjk(t))}
+              placeholder="Enter your email"
               placeholderTextColor="#B9B0A6"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -119,7 +125,7 @@ export function RegisterScreen({ navigation }: Props) {
           <View style={styles.inputRow}>
             <TextInput
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => setPassword(stripCjk(t))}
               placeholder="At least 6 characters"
               placeholderTextColor="#B9B0A6"
               secureTextEntry
@@ -136,7 +142,7 @@ export function RegisterScreen({ navigation }: Props) {
             style={({ pressed }) => [styles.passkeyRow, pressed && styles.passkeyRowPressed]}
           >
             <View style={[styles.passkeyCheck, enablePasskey && styles.passkeyCheckActive]} />
-            <Text style={styles.passkeyText}>Enable Passkey (FIDO) for this account</Text>
+            <Text style={styles.passkeyText}>Enable Passkey for this account</Text>
           </Pressable>
 
           <View style={styles.sectionBigGap} />
@@ -162,7 +168,7 @@ export function RegisterScreen({ navigation }: Props) {
             >
               <Text style={styles.linkText}>Back to login</Text>
             </Pressable>
-            <Text style={styles.tipText}>Avatar is UI-only in demo.</Text>
+            <Text style={styles.tipText}>Demo: avatar is UI-only.</Text>
           </View>
         </View>
       </KeyboardAvoidingView>

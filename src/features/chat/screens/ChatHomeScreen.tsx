@@ -1,9 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActionSheetIOS,
   Alert,
   FlatList,
   Image,
+  Modal,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -18,7 +20,10 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChatStackParamList } from '../../../app/navigation/types';
+import { useAuth } from '../../../app/providers/AuthProvider';
 import { useSkin } from '../../../app/providers/SkinProvider';
+import { useStress } from '../../../app/providers/StressProvider';
+import { chatApi } from '../../../services/chat/chatApi';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'ChatHome'>;
 
@@ -26,6 +31,13 @@ type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+};
+
+type ChatSessionIndexItem = {
+  id: string;
+  title: string;
+  preview: string;
+  updatedAt: number;
 };
 
 type ChatMode =
@@ -58,47 +70,116 @@ function id() {
   return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+function sessionStorageKey(sessionId: string) {
+  return `chat:session:${sessionId}`;
+}
+
+const SESSIONS_INDEX_KEY = 'chat:sessions:index';
+
+async function loadSessionIndex(): Promise<ChatSessionIndexItem[]> {
+  try {
+    const raw = await AsyncStorage.getItem(SESSIONS_INDEX_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((x) => x && typeof x.id === 'string')
+      .map((x) => ({
+        id: String(x.id),
+        title: String(x.title ?? ''),
+        preview: String(x.preview ?? ''),
+        updatedAt: Number(x.updatedAt ?? 0),
+      }))
+      .filter((x) => x.id);
+  } catch {
+    return [];
+  }
+}
+
+async function saveSessionIndex(list: ChatSessionIndexItem[]) {
+  try {
+    await AsyncStorage.setItem(SESSIONS_INDEX_KEY, JSON.stringify(list));
+  } catch {
+  }
+}
+
+function buildPreview(list: ChatMessage[]) {
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const m = list[i];
+    if (!m) continue;
+    const cleaned = sanitizeChatMessageText(String(m.text ?? ''), m.role);
+    if (cleaned) return cleaned.slice(0, 80);
+  }
+  return '';
+}
+
+async function upsertSessionIndex(item: ChatSessionIndexItem) {
+  const list = await loadSessionIndex();
+  const next = [item, ...list.filter((x) => x.id !== item.id)]
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    .slice(0, 50);
+  await saveSessionIndex(next);
+}
+
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
+function sanitizeChatMessageText(text: string, role: ChatMessage['role']) {
+  const cleaned = stripCjk(text ?? '').trim();
+  if (cleaned) return cleaned;
+  if (!text?.trim()) return '';
+  return role === 'assistant' ? '[Non-English response removed]' : '[Non-English message removed]';
+}
+
+function ensureEnglishOrFallback(input: string | undefined | null, fallback: string) {
+  const cleaned = stripCjk((input ?? '').toString()).trim();
+  return cleaned ? cleaned : fallback;
+}
+
 function mockReply(text: string, ctx: ChatContext) {
   const t = text.trim();
+  const lower = t.toLowerCase();
 
   const next: ChatContext = { ...ctx };
 
-  const isHelp = t === '帮助' || t === 'help' || t === 'Help' || t === 'HELP';
+  const isHelp = /^help$/i.test(t);
   if (isHelp) {
     return {
       reply:
-        '你可以聊这些：\n1) 输入 0-10 压力评分（例如 7）\n2) 睡眠：失眠/入睡/早醒\n3) 学习：作业/考试/压力\n4) 人际：关系/内耗/边界\n5) 情绪：低落/难过/崩溃\n也可以点右下角“+”选择【话题建议】或【引导模块】。',
+        'You can talk about:\n1) A 0-10 stress score (e.g., 7)\n2) Sleep: insomnia / trouble falling asleep / waking up early\n3) Study: homework / exams / pressure\n4) Relationships: boundaries / conflict / overthinking\n5) Emotions: sadness / overwhelm / burnout\nTip: tap the "+" button for topic suggestions / new chat / history / clear chat.',
       next,
     };
   }
 
   if (ctx.mode === 'stress' && ctx.step === 1) {
     if (ctx.lastQuestion === 'breathing_check') {
-      const positive = /(有点|好些|放松|舒服|可以|变好)/.test(t);
-      const negative = /(没有|不行|更糟|更难|没用)/.test(t);
+      const positive = /(better|a bit|relax|relaxed|calm|calmer|okay|ok|good|yes)/i.test(lower);
+      const negative = /(no|not|worse|hard|harder|didn\s*'?t help|doesn\s*'?t help|nothing)/i.test(lower);
+
+      next.lastQuestion = 'impact';
+      next.step = 1;
+
       if (positive) {
-        next.lastQuestion = 'impact';
-        next.step = 1;
         return {
           reply:
-            '很好，哪怕只有一点点变化也很重要。我们继续往下：现在最影响你的一件事是什么？用一句话描述就好。',
+            'Nice—even a small shift matters. What is the one thing affecting you the most right now? One sentence is enough.',
           next,
         };
       }
       if (negative) {
-        next.lastQuestion = 'impact';
-        next.step = 1;
         return {
           reply:
-            '没关系，有时候当下很难立刻放松。我们换一种方式：现在最影响你的一件事是什么？先把它说清楚，我们再一起拆解。',
+            "That's okay—sometimes it's hard to relax on demand. Let's switch gears: what is the one thing affecting you the most right now? We'll break it down together.",
           next,
         };
       }
-      next.lastQuestion = 'impact';
-      next.step = 1;
+
       return {
         reply:
-          '收到。先不纠结“有没有变化”，我们把注意力放到问题本身：现在最影响你的一件事是什么？',
+          "Got it. Let's focus on the situation itself: what is the one thing affecting you the most right now?",
         next,
       };
     }
@@ -107,8 +188,7 @@ function mockReply(text: string, ctx: ChatContext) {
       next.lastQuestion = 'impact';
       next.step = 1;
       return {
-        reply:
-          '好的。我们把它落到一个更具体的点：此刻最影响你的一件事是什么？（一句话即可）',
+        reply: 'Sure. What is the one thing affecting you the most right now? One sentence is enough.',
         next,
       };
     }
@@ -118,7 +198,7 @@ function mockReply(text: string, ctx: ChatContext) {
       next.lastQuestion = 'controllable';
       return {
         reply:
-          '谢谢你说得这么具体。我们做个“可控/不可控”划分：\nA) 这件事里你能直接控制的一小部分是什么？\nB) 你无法控制的部分又是什么？\n你先回答 A 或 B 都可以。',
+          "Thanks for being specific. Let's split it into controllable vs. uncontrollable:\nA) What is one small part you can directly control?\nB) What parts are outside your control?\nYou can answer A or B first.",
         next,
       };
     }
@@ -127,7 +207,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.lastQuestion = 'impact';
     return {
       reply:
-        '我们先把它聚焦一下：\n1) 你愿意给此刻压力打个 0-10 分吗？\n2) 或者先用一句话说：现在最影响你的一件事是什么？',
+        "Let's narrow it down:\n1) What's your stress level right now (0-10)?\n2) Or in one sentence: what's affecting you the most right now?",
       next,
     };
   }
@@ -138,7 +218,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.lastQuestion = undefined;
     return {
       reply:
-        '很好。接下来我们只做“可控部分”的一个最小动作：\n1) 写下 3 个下一步（每个 < 10 分钟）\n2) 先做 2 轮呼吸（吸 4 / 呼 6）\n3) 给自己一句更温和的自我对话\n你想先选哪一个？',
+        "Great. Let's take one tiny action on the controllable part:\n1) Write 3 next steps (<10 minutes each)\n2) Do 2 rounds of breathing (inhale 4 / exhale 6)\n3) Say one kinder sentence to yourself\nWhich one do you want to try first?",
       next,
     };
   }
@@ -147,7 +227,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 2;
     return {
       reply:
-        '明白。为了更精准：你更像是\n1) 入睡困难（躺下很久睡不着）\n2) 半夜醒来/早醒\n3) 做梦多\n回复 1/2/3 或直接描述都行。',
+        'To be more precise, which one fits you best?\n1) Trouble falling asleep\n2) Waking up during the night / waking up too early\n3) Lots of dreams\nReply 1/2/3 or describe it in your own words.',
       next,
     };
   }
@@ -156,7 +236,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '谢谢你。我们先做一个非常实用的排查：\n- 你一般几点上床？大概多久睡着？\n- 睡前 2 小时有没有咖啡/奶茶/高强度刷手机？\n你先回答其中一个就好。',
+        'Thanks. Quick check:\n- What time do you usually go to bed, and roughly how long does it take to fall asleep?\n- In the 2 hours before bed, any caffeine or heavy screen time?\nAnswer either one.',
       next,
     };
   }
@@ -165,7 +245,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 2;
     return {
       reply:
-        '收到。我们用 2 分钟把它结构化：\n1) 你现在最紧急的 1 个任务是什么？\n2) 截止时间是什么时候？\n3) 你预计需要多长时间？\n按 1/2/3 回答即可。',
+        "Let's structure it in 2 minutes:\n1) What's the most urgent task right now?\n2) What's the deadline?\n3) How long do you think it will take?\nYou can answer 1/2/3.",
       next,
     };
   }
@@ -174,7 +254,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '很好。我们做一个“最小可执行计划”：\n- 先把任务拆成 3 步（每步 15-25 分钟）\n- 先做第 1 步的“启动动作”（打开资料/列提纲/写第一段）\n你愿意把这 3 步写出来吗？我帮你一起改到更容易完成。',
+        "Great. Let's make a tiny executable plan:\n- Break the task into 3 steps (15-25 minutes each)\n- Pick a starter action for step 1 (open the doc / outline / write the first sentence)\nWrite your 3 steps and I'll help you make them easier to complete.",
       next,
     };
   }
@@ -183,7 +263,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 2;
     return {
       reply:
-        '我懂。先选一个方向：\n1) 你担心“对方怎么看你”\n2) 你不知道怎么表达边界\n3) 你在关系里总是过度付出\n回复 1/2/3，我们就沿着那条线继续。',
+        "Pick a direction:\n1) You worry about what the other person thinks of you\n2) You are not sure how to express a boundary\n3) You tend to over-give in relationships\nReply 1/2/3 and we'll continue from there.",
       next,
     };
   }
@@ -192,7 +272,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '好，我们把表达变得更容易：\n- 事实：发生了什么（不评价）\n- 感受：我感到…\n- 需求/边界：我希望…/我需要…\n你把你的情况用一句“事实”写出来，我帮你把后两句补齐成一段可发送的话。',
+        "Let's make it easier to express:\n- Fact: what happened (no judgment)\n- Feeling: I feel...\n- Need/boundary: I need... / I would like...\nWrite one sentence for the Fact and I'll help you craft the rest into a message you can send.",
       next,
     };
   }
@@ -201,7 +281,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '谢谢你。我们做个情绪识别的收尾：\n1) 这份情绪最像在身体哪个部位？（胸口/胃/喉咙/头）\n2) 它更像“委屈/难过/害怕/愤怒/疲惫”的哪一个？\n你先选一个回答即可。',
+        'Thank you for sharing. Quick emotion check-in:\n1) Where do you feel it in your body? (chest / stomach / throat / head)\n2) Which label fits best: sadness / fear / anger / shame / exhaustion?\nYou can answer either one first.',
       next,
     };
   }
@@ -210,7 +290,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '做得很好。现在给它打个 0-10 分（紧张程度）。如果你愿意，也可以说一句：此刻你最担心的是什么？',
+        "Well done. Rate your tension from 0-10. If you'd like, also tell me: what are you most worried about right now?",
       next,
     };
   }
@@ -219,7 +299,7 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '拖延很多时候不是懒，而是“启动成本太高”。我们做个最小化：\n把你要做的事改成一个 2 分钟动作（例如：打开文档写标题/收集 3 条资料）。\n你现在要做的事是什么？我帮你改成 2 分钟版本。',
+        'Procrastination is often about a high start-up cost, not laziness. Let\'s shrink it: turn your task into a 2-minute action (e.g., open the doc and write a title). What are you trying to do? I\'ll help you make a 2-minute version.',
       next,
     };
   }
@@ -228,13 +308,13 @@ function mockReply(text: string, ctx: ChatContext) {
     next.step = 0;
     return {
       reply:
-        '我听到你在自我怀疑。我们试一个练习：\n写下 1 件你做得还不错的小事（再小也行）+ 1 个你正在努力的方向。\n你愿意先写其中一个吗？',
+        'I hear the self-doubt. Try this: write 1 tiny thing you did okay (even small) + 1 direction you are trying to improve. Want to share one of them?',
       next,
     };
   }
 
-  if (/^(10|[0-9])$/.test(t)) {
-    const score = Number(t);
+  if (/^(10|[0-9])$/.test(lower)) {
+    const score = Number(lower);
     if (Number.isFinite(score) && score >= 0 && score <= 10) {
       next.mode = 'stress';
       next.step = 1;
@@ -242,7 +322,7 @@ function mockReply(text: string, ctx: ChatContext) {
       if (score <= 3) {
         next.lastQuestion = 'small_help';
         return {
-          reply: '听起来压力还在可承受范围里。现在你最希望我帮你做的一件小事是什么？',
+          reply: 'That sounds manageable. What is one small thing you want help with right now?',
           next,
         };
       }
@@ -250,137 +330,133 @@ function mockReply(text: string, ctx: ChatContext) {
         next.lastQuestion = 'breathing_check';
         return {
           reply:
-            '谢谢你给出分数。我们先做个 30 秒的放松：吸气 4 秒，停 2 秒，呼气 6 秒。做完后你感觉有变化吗？',
+            "Thanks for the number. Let's do a 30-second reset: inhale 4s, hold 2s, exhale 6s. After that, do you feel any change?",
           next,
         };
       }
       next.lastQuestion = 'impact';
       return {
-        reply: '这个分数挺高的，辛苦你了。我们先把目标缩小：今天最影响你的一件事是什么？',
+        reply:
+          "That's a high score—I'm glad you're here. Let's shrink the target: what is the one thing affecting you the most today?",
         next,
       };
     }
   }
 
-  if (t.includes('睡') || t.includes('失眠') || t.includes('做梦')) {
+  if (/(sleep|insomnia|nightmare|dream)/i.test(lower)) {
     next.mode = 'sleep';
     next.step = 1;
     next.lastQuestion = 'sleep_type';
     return {
       reply:
-        '我听到你在为睡眠困扰。我们先从类型开始（入睡困难/半夜醒来/早醒/做梦多），你更像哪一种？',
+        'I hear sleep has been hard. What type fits you best (trouble falling asleep / waking up at night / waking up early / lots of dreams)?',
       next,
     };
   }
 
-  if (t.includes('压力') || t.includes('焦虑') || t.includes('紧张')) {
+  if (/(stress|anxiety|anxious|panic|nervous|tense)/i.test(lower)) {
     next.mode = 'stress';
     next.step = 1;
     next.lastQuestion = 'impact';
     return {
       reply:
-        '我听到你压力/焦虑有点高。我们先快速定位：\n1) 你愿意给此刻压力打个 0-10 分吗？\n2) 或者用一句话说：现在最影响你的一件事是什么？',
+        "It sounds like your stress/anxiety is high. Let's locate it quickly:\n1) What's your stress right now (0-10)?\n2) Or in one sentence: what's affecting you the most right now?",
       next,
     };
   }
 
-  if (t.includes('学习') || t.includes('作业') || t.includes('考试')) {
+  if (/(study|homework|exam|school|assignment|deadline)/i.test(lower)) {
     next.mode = 'study';
     next.step = 1;
     next.lastQuestion = 'study_focus';
     return {
       reply:
-        '学习压力大的时候，大脑会一直处于“警报”状态。你现在最卡住的是时间不够、效率下降，还是对结果的担心？',
+        "When study pressure is high, your brain stays in 'alarm mode'. What's hardest right now: not enough time, low efficiency, or worrying about the result?",
       next,
     };
   }
 
-  if (t.includes('人际') || t.includes('关系') || t.includes('内耗') || t.includes('同学') || t.includes('朋友')) {
+  if (/(relationship|friend|friends|classmate|partner|family|boundary|conflict|social)/i.test(lower)) {
     next.mode = 'relationship';
     next.step = 1;
     next.lastQuestion = 'relationship_focus';
     return {
       reply:
-        '在人际关系里内耗真的很累。你更在意的是“对方怎么看我”，还是“我不知道怎么表达我的边界”？',
+        'Relationships can be exhausting. Are you more stuck on "what do they think of me" or "I do not know how to set my boundary"?',
       next,
     };
   }
 
-  if (t.includes('低落') || t.includes('难过') || t.includes('不开心') || t.includes('崩溃')) {
+  if (/(sad|down|depressed|overwhelmed|cry|breakdown|upset|hurt|numb|burnout)/i.test(lower)) {
     next.mode = 'emotion';
     next.step = 1;
     next.lastQuestion = 'emotion_focus';
     return {
       reply:
-        '你能把这些说出来已经很不容易了。现在你的情绪更像是“委屈/难过”，还是“疲惫/麻木”？如果方便，给它打个 0-10 分。',
+        'It takes courage to say this. Does it feel more like sadness, or more like exhaustion/numbness? If you can, rate it 0-10.',
       next,
     };
   }
 
-  if (t.includes('呼吸') || t.includes('放松')) {
+  if (/(breath|breathing|relax|relaxation|calm)/i.test(lower)) {
     next.mode = 'breathing';
     next.step = 1;
     return {
       reply:
-        '好，我们做 1 分钟呼吸放松：\n- 吸气 4 秒\n- 停 2 秒\n- 呼气 6 秒\n重复 4 轮。\n做完告诉我：你身体哪里最紧？',
+        'Okay. Let\'s do a 1-minute breathing reset:\n- Inhale 4 seconds\n- Hold 2 seconds\n- Exhale 6 seconds\nRepeat 4 rounds.\nAfter that, where do you feel the most tension in your body?',
       next,
     };
   }
 
-  if (t.includes('拖延')) {
+  if (/procrastinat/i.test(lower)) {
     next.mode = 'procrastination';
     next.step = 1;
     return {
       reply:
-        '我听到你在被拖延困住。我们先不批评自己，先找到“最难开始的那一步”：你现在最想完成、但一直开始不了的事是什么？',
+        "I hear you're stuck in procrastination. Let's not blame yourself—let's find the hardest first step. What do you want to finish but can't get started on?",
       next,
     };
   }
 
-  if (t.includes('自我怀疑') || t.includes('不够好')) {
+  if (/(self\s*-?doubt|not\s+good\s+enough|i\s*am\s*not\s*good\s*enough|i\s*'?m\s*not\s*good\s*enough|i\s*will\s*fail)/i.test(lower)) {
     next.mode = 'selfDoubt';
     next.step = 1;
     return {
-      reply: '自我怀疑很折磨人。你最近最常出现的那句自我评价是什么？（例如“我不行/我不够好/我会失败”）',
+      reply:
+        'Self-doubt can be exhausting. What is the sentence you keep telling yourself lately? (e.g., "I\'m not good enough", "I\'ll fail", "I can\'t do it")',
       next,
     };
   }
 
-  if (t.length <= 8)
+  if (t.length <= 8) {
     return {
       reply:
-        '我在。我们先把呼吸放慢一点：吸气 4 秒，呼气 6 秒。你愿意跟我做两轮吗？（回复“好”或“继续”）',
+        'I\'m here. Let\'s slow the breath: inhale 4 seconds, exhale 6 seconds. Want to do two rounds with me? (reply "yes" or "continue")',
       next,
     };
+  }
 
   next.mode = 'general';
   next.step = 0;
   next.lastQuestion = undefined;
   return {
     reply:
-      '谢谢你愿意说出来。为了更了解你：这件事对你影响最大的部分是什么？你最担心会发生什么？（也可以回复“帮助”）',
+      'Thanks for sharing. To understand you better: what part affects you the most, and what are you most worried might happen? (You can also type "help".)',
     next,
   };
 }
 
-const TOPIC_SUGGESTIONS: Array<{ label: string; text: string }> = [
-  { label: '压力评分', text: '我现在的压力大概是 7 分（0-10）。' },
-  { label: '睡眠困扰', text: '我最近失眠，入睡很困难。' },
-  { label: '焦虑紧张', text: '我最近总是很焦虑，脑子停不下来。' },
-  { label: '情绪低落', text: '我最近很低落，提不起劲。' },
-  { label: '学习/考试', text: '我最近学习压力很大，担心考不好。' },
-  { label: '拖延', text: '我总在拖延，明明知道要做但就是开始不了。' },
-  { label: '人际关系', text: '我和朋友/同学的关系让我很内耗。' },
-  { label: '自我怀疑', text: '我总觉得自己不够好，容易自我怀疑。' },
-  { label: '情绪爆发', text: '我最近容易崩溃/想哭，控制不住情绪。' },
-  { label: '做个呼吸', text: '我现在有点难受，能带我做 1 分钟呼吸放松吗？' },
-];
-
-export function ChatHomeScreen({ navigation }: Props) {
+export function ChatHomeScreen({ navigation, route }: Props) {
   const initialMessages = useMemo<ChatMessage[]>(
-    () => [{ id: id(), role: 'assistant', text: '你好，我在。你可以先说说今天发生了什么。' }],
+    () => [{ id: id(), role: 'assistant', text: "Hi, I'm here. What happened today?" }],
     [],
   );
+
+  const sessionId = route.params?.sessionId ?? 'default';
+  const sessionTitle = ensureEnglishOrFallback(route.params?.title, 'Chat');
+
+  const { accessToken } = useAuth();
+  const { stressScore } = useStress();
 
   const { skinSource } = useSkin();
 
@@ -388,6 +464,13 @@ export function ChatHomeScreen({ navigation }: Props) {
 
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [input, setInput] = useState('');
+  const [topicSuggestionsVisible, setTopicSuggestionsVisible] = useState(false);
+
+  const messagesRef = useRef<ChatMessage[]>(initialMessages);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const [chatCtx, setChatCtx] = useState<ChatContext>({ mode: 'general', step: 0 });
 
@@ -408,6 +491,94 @@ export function ChatHomeScreen({ navigation }: Props) {
     setIsStreaming(false);
   };
 
+  useEffect(() => {
+    const load = async () => {
+      stopStreaming();
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
+      try {
+        const raw = await AsyncStorage.getItem(sessionStorageKey(sessionId));
+        if (raw) {
+          const parsed = JSON.parse(raw) as ChatMessage[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const sanitized = parsed
+              .filter((m) => m && (m.role === 'user' || m.role === 'assistant'))
+              .map((m) => ({
+                ...m,
+                text: sanitizeChatMessageText(String(m.text ?? ''), m.role),
+              }))
+              .filter((m) => !!m.text.trim());
+            if (sanitized.length > 0) {
+              messagesRef.current = sanitized;
+              setMessages(sanitized);
+              setInput('');
+              setChatCtx({ mode: 'general', step: 0 });
+              await upsertSessionIndex({
+                id: sessionId,
+                title: ensureEnglishOrFallback(sessionTitle, 'Chat'),
+                preview: buildPreview(sanitized),
+                updatedAt: Date.now(),
+              });
+              return;
+            }
+            setInput('');
+            setChatCtx({ mode: 'general', step: 0 });
+            return;
+          }
+        }
+      } catch (e) {
+      }
+
+      messagesRef.current = initialMessages;
+      setMessages(initialMessages);
+      setInput('');
+      setChatCtx({ mode: 'general', step: 0 });
+      try {
+        await AsyncStorage.setItem(sessionStorageKey(sessionId), JSON.stringify(initialMessages));
+      } catch (e) {
+      }
+
+      await upsertSessionIndex({
+        id: sessionId,
+        title: ensureEnglishOrFallback(sessionTitle, 'Chat'),
+        preview: buildPreview(initialMessages),
+        updatedAt: Date.now(),
+      });
+    };
+
+    void load();
+  }, [initialMessages, sessionId, sessionTitle]);
+
+  const createNewChat = () => {
+    const newId = id();
+    navigation.setParams({ sessionId: newId, title: 'Chat' });
+  };
+
+  const clearCurrentChat = () => {
+    stopStreaming();
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    messagesRef.current = initialMessages;
+    setMessages(initialMessages);
+    setInput('');
+    setChatCtx({ mode: 'general', step: 0 });
+
+    AsyncStorage.setItem(sessionStorageKey(sessionId), JSON.stringify(initialMessages)).catch(() => {
+    });
+    void upsertSessionIndex({
+      id: sessionId,
+      title: ensureEnglishOrFallback(sessionTitle, 'Chat'),
+      preview: buildPreview(initialMessages),
+      updatedAt: Date.now(),
+    });
+  };
+
   const finalizeStreaming = () => {
     const msgId = streamingMessageIdRef.current;
     const full = streamingFullTextRef.current;
@@ -419,17 +590,18 @@ export function ChatHomeScreen({ navigation }: Props) {
 
   const startStreaming = (assistantId: string, fullText: string) => {
     stopStreaming();
+    const safeFullText = sanitizeChatMessageText(fullText, 'assistant');
     streamingMessageIdRef.current = assistantId;
-    streamingFullTextRef.current = fullText;
+    streamingFullTextRef.current = safeFullText;
     setIsStreaming(true);
 
     let i = 0;
     timerRef.current = setInterval(() => {
       i += 1;
       setMessages((prev) =>
-        prev.map((m) => (m.id === assistantId ? { ...m, text: fullText.slice(0, i) } : m)),
+        prev.map((m) => (m.id === assistantId ? { ...m, text: safeFullText.slice(0, i) } : m)),
       );
-      if (i >= fullText.length) {
+      if (i >= safeFullText.length) {
         stopStreaming();
       }
     }, 34);
@@ -443,17 +615,43 @@ export function ChatHomeScreen({ navigation }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (isStreaming) return;
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+
+    saveTimerRef.current = setTimeout(() => {
+      AsyncStorage.setItem(sessionStorageKey(sessionId), JSON.stringify(messages)).catch(() => {
+      });
+
+      void upsertSessionIndex({
+        id: sessionId,
+        title: ensureEnglishOrFallback(sessionTitle, 'Chat'),
+        preview: buildPreview(messages),
+        updatedAt: Date.now(),
+      });
+    }, 220);
+
+    return () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [isStreaming, messages, sessionId, sessionTitle]);
+
   const lastHint = useMemo(() => {
-    if (isStreaming) return 'AI 正在输入…';
-    if (messages.length <= 1)
-      return '提示：点“+”选【话题建议/引导模块】；或输入 0-10 分数；也可发送“帮助”。';
+    if (isStreaming) return 'AI is typing…';
+    if (messages.length <= 1) return 'Tip: tap "+" for topic suggestions / new chat / history.';
     const last = messages[messages.length - 1];
     if (!last) return '';
-    return last.role === 'assistant' ? '可以继续补充细节' : '我正在理解…';
+    return last.role === 'assistant' ? 'You can add more details.' : 'Thinking…';
   }, [isStreaming, messages]);
 
   const sendText = (raw: string) => {
-    const text = raw.trim();
+    const text = stripCjk(raw).trim();
     if (!text) return;
 
     if (isStreaming) {
@@ -461,16 +659,35 @@ export function ChatHomeScreen({ navigation }: Props) {
     }
 
     const assistantId = id();
-    const { reply, next } = mockReply(text, chatCtx);
+    const { reply: fallbackReply, next } = mockReply(text, chatCtx);
     setChatCtx(next);
 
-    setMessages((prev) => {
-      const userMessage: ChatMessage = { id: id(), role: 'user', text };
-      const assistantMessage: ChatMessage = { id: assistantId, role: 'assistant', text: '' };
-      return [...prev, userMessage, assistantMessage];
-    });
+    const prev = messagesRef.current;
+    const userMessage: ChatMessage = { id: id(), role: 'user', text };
+    const assistantMessage: ChatMessage = { id: assistantId, role: 'assistant', text: '' };
+    const nextMessages = [...prev, userMessage, assistantMessage];
+    messagesRef.current = nextMessages;
+    setMessages(nextMessages);
 
-    startStreaming(assistantId, reply);
+    void (async () => {
+      try {
+        const history = [...prev, userMessage]
+          .filter((m) => !!m.text.trim())
+          .slice(-20)
+          .map((m) => ({ role: m.role, content: m.text }));
+
+        const reply = await chatApi.chat({
+          token: accessToken,
+          stressScore,
+          mode: next.mode,
+          messages: history,
+        });
+
+        startStreaming(assistantId, reply);
+      } catch (e) {
+        startStreaming(assistantId, fallbackReply);
+      }
+    })();
   };
 
   const send = () => {
@@ -480,112 +697,25 @@ export function ChatHomeScreen({ navigation }: Props) {
     setInput('');
   };
 
-  const resetChat = () => {
-    stopStreaming();
-    setMessages(initialMessages);
-    setInput('');
-    setChatCtx({ mode: 'general', step: 0 });
-  };
-
   const openMore = () => {
-    const options = ['话题建议', '引导模块', 'AI形象', '历史对话', '语音沟通', '清空对话', '取消'];
-
-    const openGuideModules = () => {
-      const modules: Array<{ label: string; text: string; ctx: ChatContext }> = [
-        { label: '情绪识别', text: '我想做情绪识别。', ctx: { mode: 'emotion', step: 1 } },
-        { label: '压力拆解', text: '我想把压力拆解一下。', ctx: { mode: 'stress', step: 1 } },
-        { label: '呼吸练习', text: '带我做 1 分钟呼吸放松。', ctx: { mode: 'breathing', step: 1 } },
-        { label: '睡眠建议', text: '我想改善睡眠，给我一些建议。', ctx: { mode: 'sleep', step: 1 } },
-        { label: '学习计划', text: '我想制定一个可执行的学习计划。', ctx: { mode: 'study', step: 1 } },
-        { label: '人际边界', text: '我想练习怎么表达边界。', ctx: { mode: 'relationship', step: 1 } },
-      ];
-
-      const moduleOptions = [...modules.map((m) => m.label), '取消'];
-      const cancelIndex = moduleOptions.length - 1;
-
-      const handleModule = (i?: number) => {
-        if (i == null) return;
-        if (i < 0 || i >= modules.length) return;
-        setChatCtx(modules[i].ctx);
-        setInput(modules[i].text);
-      };
-
-      if (Platform.OS === 'ios') {
-        ActionSheetIOS.showActionSheetWithOptions(
-          {
-            options: moduleOptions,
-            cancelButtonIndex: cancelIndex,
-          },
-          handleModule,
-        );
-        return;
-      }
-
-      Alert.alert(
-        '引导模块',
-        '请选择一个模块自动填充到输入框',
-        [...modules.map((m, idx) => ({ text: m.label, onPress: () => handleModule(idx) })),
-        { text: '取消', style: 'cancel' }],
-      );
-    };
-
+    const options = ['Topic suggestions', 'New chat', 'Chat history', 'Clear chat', 'Cancel'];
     const handleSelect = (buttonIndex?: number) => {
       if (buttonIndex === 0) {
-        const topicOptions = [...TOPIC_SUGGESTIONS.map((t) => t.label), '取消'];
-        const topicCancelIndex = topicOptions.length - 1;
-
-        const handleTopic = (i?: number) => {
-          if (i == null) return;
-          if (i < 0 || i >= TOPIC_SUGGESTIONS.length) return;
-          setInput(TOPIC_SUGGESTIONS[i].text);
-        };
-
-        if (Platform.OS === 'ios') {
-          ActionSheetIOS.showActionSheetWithOptions(
-            {
-              options: topicOptions,
-              cancelButtonIndex: topicCancelIndex,
-            },
-            handleTopic,
-          );
-          return;
-        }
-
-        Alert.alert(
-          '话题建议',
-          '请选择一个话题自动填充到输入框',
-          [...TOPIC_SUGGESTIONS.slice(0, 6).map((t, idx) => ({
-            text: t.label,
-            onPress: () => handleTopic(idx),
-          })), { text: '取消', style: 'cancel' }],
-        );
+        setTopicSuggestionsVisible(true);
         return;
       }
-
       if (buttonIndex === 1) {
-        openGuideModules();
+        createNewChat();
         return;
       }
-
       if (buttonIndex === 2) {
-        navigation.navigate('Persona');
-        return;
-      }
-
-      if (buttonIndex === 3) {
         navigation.navigate('ChatHistory');
         return;
       }
-
-      if (buttonIndex === 4) {
-        navigation.navigate('VoiceChat');
-        return;
-      }
-
-      if (buttonIndex === 5) {
-        Alert.alert('清空对话', '确定要清空当前对话吗？', [
-          { text: '取消', style: 'cancel' },
-          { text: '清空', style: 'destructive', onPress: resetChat },
+      if (buttonIndex === 3) {
+        Alert.alert('Clear chat?', 'This will reset the current chat messages.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Clear', style: 'destructive', onPress: () => clearCurrentChat() },
         ]);
       }
     };
@@ -594,22 +724,20 @@ export function ChatHomeScreen({ navigation }: Props) {
       ActionSheetIOS.showActionSheetWithOptions(
         {
           options,
-          cancelButtonIndex: 6,
-          destructiveButtonIndex: 5,
+          cancelButtonIndex: 4,
+          destructiveButtonIndex: 3,
         },
         handleSelect,
       );
       return;
     }
 
-    Alert.alert('更多', undefined, [
+    Alert.alert('More', undefined, [
       { text: options[0], onPress: () => handleSelect(0) },
       { text: options[1], onPress: () => handleSelect(1) },
       { text: options[2], onPress: () => handleSelect(2) },
-      { text: options[3], onPress: () => handleSelect(3) },
-      { text: options[4], onPress: () => handleSelect(4) },
-      { text: options[5], style: 'destructive', onPress: () => handleSelect(5) },
-      { text: options[6], style: 'cancel' },
+      { text: options[3], style: 'destructive', onPress: () => handleSelect(3) },
+      { text: options[4], style: 'cancel' },
     ]);
   };
 
@@ -673,6 +801,51 @@ export function ChatHomeScreen({ navigation }: Props) {
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
+      <Modal
+        transparent
+        animationType="fade"
+        visible={topicSuggestionsVisible}
+        onRequestClose={() => setTopicSuggestionsVisible(false)}
+      >
+        <Pressable
+          accessibilityRole="button"
+          style={styles.modalBackdrop}
+          onPress={() => setTopicSuggestionsVisible(false)}
+        >
+          <Pressable
+            accessibilityRole="none"
+            style={styles.suggestionCard}
+            onPress={() => {
+            }}
+          >
+            <View style={styles.suggestionHeader}>
+              <Image source={skinSource} style={styles.suggestionAvatar} />
+              <Text style={styles.suggestionTitle}>
+                Your mood looks a bit low. For the recent topic “final exam pressure”, you might ask:
+              </Text>
+            </View>
+
+            {[
+              '1. How can I stay focused while revising and not get distracted by anxiety?',
+              '2. What can I do right now to reduce exam stress in 10 minutes?',
+              '3. How do I make a realistic revision plan when I feel overwhelmed?',
+            ].map((t) => (
+              <Pressable
+                key={t}
+                accessibilityRole="button"
+                onPress={() => {
+                  setInput(t.replace(/^\d+\.\s*/, ''));
+                  setTopicSuggestionsVisible(false);
+                }}
+                style={({ pressed }) => [styles.suggestionItem, pressed && styles.pressed]}
+              >
+                <Text style={styles.suggestionItemText}>{t}</Text>
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -683,7 +856,9 @@ export function ChatHomeScreen({ navigation }: Props) {
           <Text style={styles.backIcon}>{'‹'}</Text>
         </Pressable>
 
-        <Text style={styles.headerTitle}>Chat</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {sessionTitle}
+        </Text>
 
         <View style={styles.headerRight} />
       </View>
@@ -726,8 +901,8 @@ export function ChatHomeScreen({ navigation }: Props) {
           <View style={styles.composer}>
             <TextInput
               value={input}
-              onChangeText={setInput}
-              placeholder="Please input here"
+              onChangeText={(t) => setInput(stripCjk(t))}
+              placeholder="Type a message..."
               placeholderTextColor="#B7B7B7"
               style={styles.textInput}
               returnKeyType="send"
@@ -932,5 +1107,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'rgba(43,26,11,0.55)',
     paddingHorizontal: 6,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    paddingHorizontal: 18,
+    justifyContent: 'center',
+  },
+  suggestionCard: {
+    backgroundColor: '#E5E5E5',
+    borderRadius: 18,
+    padding: 16,
+  },
+  suggestionHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  suggestionAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  suggestionTitle: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#2B1A0B',
+    fontWeight: '700',
+  },
+  suggestionItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#F0C56E',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  suggestionItemText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#2B1A0B',
+    fontWeight: '700',
   },
 });

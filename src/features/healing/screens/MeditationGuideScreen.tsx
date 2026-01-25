@@ -15,6 +15,12 @@ const DURATIONS = [3, 5, 10] as const;
 
 type Duration = (typeof DURATIONS)[number];
 
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
 type Script = {
   id: 'breath' | 'body' | 'sleep';
   name: string;
@@ -24,18 +30,23 @@ type Script = {
 const SCRIPTS: Script[] = [
   {
     id: 'breath',
-    name: '呼吸回到当下',
-    outline: ['先找到舒适坐姿', '把注意力放到鼻尖', '走神时轻轻带回', '结束前做一次伸展'],
+    name: 'Breath to the present',
+    outline: [
+      'Find a comfortable seated posture',
+      'Bring attention to the tip of your nose',
+      'Gently return when your mind wanders',
+      'Do a short stretch before finishing',
+    ],
   },
   {
     id: 'body',
-    name: '身体扫描',
-    outline: ['从头顶到脚趾', '感受紧绷的位置', '呼气时放松', '允许一切存在'],
+    name: 'Body scan',
+    outline: ['From head to toes', 'Notice areas of tension', 'Soften on the exhale', 'Allow everything to be here'],
   },
   {
     id: 'sleep',
-    name: '睡前放松',
-    outline: ['放慢呼吸节奏', '想象温暖光线', '把担忧写在脑海外', '只做“休息”这件事'],
+    name: 'Pre-sleep relaxation',
+    outline: ['Slow down your breathing', 'Imagine warm light', 'Set worries outside the mind', 'Let your only task be rest'],
   },
 ];
 
@@ -58,15 +69,15 @@ export function MeditationGuideScreen({}: Props) {
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(4);
   const [note, setNote] = useState('');
   const [history, setHistory] = useState<Log[]>([
-    { id: id('m'), scriptName: '呼吸回到当下', duration: 5, rating: 4, note: '中午短暂停一下' },
+    { id: id('m'), scriptName: 'Breath to the present', duration: 5, rating: 4, note: 'Quick midday reset' },
   ]);
 
   const script = useMemo(() => SCRIPTS.find((s) => s.id === scriptId) ?? SCRIPTS[0], [scriptId]);
 
   const stateText = useMemo(() => {
-    if (state === 'idle') return '准备开始';
-    if (state === 'started') return '进行中…';
-    return '已完成';
+    if (state === 'idle') return 'Ready';
+    if (state === 'started') return 'In progress...';
+    return 'Completed';
   }, [state]);
 
   const save = () => {
@@ -77,7 +88,7 @@ export function MeditationGuideScreen({}: Props) {
           scriptName: script.name,
           duration,
           rating,
-          note: note.trim() || '完成一次练习',
+          note: stripCjk(note).trim() || 'Completed a practice',
         },
         ...prev,
       ].slice(0, 5),
@@ -88,12 +99,12 @@ export function MeditationGuideScreen({}: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>冥想引导</Text>
-        <Text style={styles.subtitle}>用短时间把注意力带回身体与呼吸。</Text>
+        <Text style={styles.title}>Meditation guide</Text>
+        <Text style={styles.subtitle}>Bring your attention back to your body and breath in a short session.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>选择脚本</Text>
+        <Text style={styles.sectionTitle}>Choose a script</Text>
         <View style={styles.stack}>
           {SCRIPTS.map((s) => (
             <PrimaryButton
@@ -110,12 +121,12 @@ export function MeditationGuideScreen({}: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>选择时长</Text>
+        <Text style={styles.sectionTitle}>Choose duration</Text>
         <View style={styles.row}>
           {DURATIONS.map((m) => (
             <PrimaryButton
               key={m}
-              title={`${m} 分钟`}
+              title={`${m} min`}
               variant={m === duration ? 'primary' : 'ghost'}
               onPress={() => setDuration(m)}
               style={styles.flex}
@@ -126,25 +137,25 @@ export function MeditationGuideScreen({}: Props) {
         <View style={styles.block}>
           <Text style={styles.status}>{stateText}</Text>
           {state !== 'started' ? (
-            <PrimaryButton title="开始" onPress={() => setState('started')} />
+            <PrimaryButton title="Start" onPress={() => setState('started')} />
           ) : (
-            <PrimaryButton title="完成" onPress={() => setState('done')} />
+            <PrimaryButton title="Finish" onPress={() => setState('done')} />
           )}
-          <PrimaryButton title="重置" variant="ghost" onPress={() => setState('idle')} />
+          <PrimaryButton title="Reset" variant="ghost" onPress={() => setState('idle')} />
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>简短流程</Text>
+        <Text style={styles.sectionTitle}>Outline</Text>
         {script.outline.map((line, idx) => (
           <Text key={line} style={styles.muted}>{`${idx + 1}) ${line}`}</Text>
         ))}
-        <Text style={[styles.muted, { marginTop: 8 }]}>{`建议时长：${duration} 分钟`}</Text>
+        <Text style={[styles.muted, { marginTop: 8 }]}>{`Recommended duration: ${duration} min`}</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>完成记录</Text>
-        <Text style={styles.muted}>给这次练习一个评分，并写一句感受（本地模拟）。</Text>
+        <Text style={styles.sectionTitle}>Session log</Text>
+        <Text style={styles.muted}>Rate this session and write a short note (local mock).</Text>
         <View style={styles.row}>
           {[1, 2, 3, 4, 5].map((r) => (
             <PrimaryButton
@@ -156,19 +167,24 @@ export function MeditationGuideScreen({}: Props) {
             />
           ))}
         </View>
-        <TextField label="备注" value={note} onChangeText={setNote} placeholder="例如：心跳慢下来了" />
+        <TextField
+          label="Note"
+          value={note}
+          onChangeText={(t) => setNote(stripCjk(t))}
+          placeholder="e.g., my heart rate slowed down"
+        />
         <View style={styles.block}>
-          <PrimaryButton title="保存到历史" onPress={save} />
+          <PrimaryButton title="Save to history" onPress={save} />
         </View>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>最近历史</Text>
+        <Text style={styles.sectionTitle}>Recent history</Text>
         <View style={styles.historyList}>
           {history.map((h) => (
             <View key={h.id} style={styles.historyItem}>
               <Text style={styles.historyTitle}>{h.scriptName}</Text>
-              <Text style={styles.historyMeta}>{`${h.duration} 分钟 · 评分 ${h.rating}/5`}</Text>
+              <Text style={styles.historyMeta}>{`${h.duration} min · Rating ${h.rating}/5`}</Text>
               <Text style={styles.historyNote}>{h.note}</Text>
             </View>
           ))}

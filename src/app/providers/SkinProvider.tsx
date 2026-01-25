@@ -13,9 +13,9 @@ type SkinOption = {
 };
 
 const SKINS: SkinOption[] = [
-  { id: 'cara_0', label: 'Skin A', source: require('../../../assets/Cara/未命名作品 3.png') },
-  { id: 'cara_1', label: 'Skin B', source: require('../../../assets/Cara/未命名作品 4 2.png') },
-  { id: 'cara_2', label: 'Skin C', source: require('../../../assets/Cara/未命名作品 5 1.png') },
+  { id: 'cara_0', label: 'Skin A', source: require('../../../assets/Cara/cara_a.png') },
+  { id: 'cara_1', label: 'Skin B', source: require('../../../assets/Cara/cara_b.png') },
+  { id: 'cara_2', label: 'Skin C', source: require('../../../assets/Cara/cara_c.png') },
 ];
 
 type SkinContextValue = {

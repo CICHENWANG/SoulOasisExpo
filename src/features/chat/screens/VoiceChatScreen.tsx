@@ -10,13 +10,19 @@ import { colors } from '../../../ui/theme/colors';
 
 type Props = NativeStackScreenProps<ChatStackParamList, 'VoiceChat'>;
 
+const CJK_RE = /[\u4e00-\u9fff]/g;
+
+function stripCjk(input: string) {
+  return input.replace(CJK_RE, '');
+}
+
 export function VoiceChatScreen({ navigation }: Props) {
   const [isRecording, setIsRecording] = useState(false);
   const [lastResult, setLastResult] = useState('');
 
   const status = useMemo(() => {
-    if (isRecording) return '录音中…';
-    return '未开始';
+    if (isRecording) return 'Recording...';
+    return 'Idle';
   }, [isRecording]);
 
   const toggle = () => {
@@ -26,7 +32,7 @@ export function VoiceChatScreen({ navigation }: Props) {
         setLastResult('');
       }
       if (prev && !next) {
-        setLastResult('识别结果：我想放松一下，但有点不知道怎么开始。');
+        setLastResult(stripCjk("Transcript: I want to relax, but I'm not sure how to start."));
       }
       return next;
     });
@@ -35,21 +41,21 @@ export function VoiceChatScreen({ navigation }: Props) {
   return (
     <Screen>
       <Card>
-        <Text style={styles.title}>语音沟通</Text>
-        <Text style={styles.subtitle}>不接入真实录音能力，保留页面与交互结构用于展示。</Text>
+        <Text style={styles.title}>Voice chat</Text>
+        <Text style={styles.subtitle}>A UI-only mock. No real recording capability is integrated.</Text>
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>状态</Text>
+        <Text style={styles.sectionTitle}>Status</Text>
         <Text style={styles.status}>{status}</Text>
         <View style={styles.row}>
           <PrimaryButton
-            title={isRecording ? '停止' : '开始'}
+            title={isRecording ? 'Stop' : 'Start'}
             onPress={toggle}
             style={styles.flex}
           />
           <PrimaryButton
-            title="返回聊天"
+            title="Back to chat"
             variant="ghost"
             onPress={() => navigation.navigate('ChatHome')}
             style={styles.flex}
@@ -58,8 +64,8 @@ export function VoiceChatScreen({ navigation }: Props) {
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>识别结果</Text>
-        <Text style={styles.muted}>{lastResult || '停止后会显示一条示例识别文本。'}</Text>
+        <Text style={styles.sectionTitle}>Transcript</Text>
+        <Text style={styles.muted}>{stripCjk(lastResult) || 'A sample transcript will appear after you stop.'}</Text>
       </Card>
     </Screen>
   );

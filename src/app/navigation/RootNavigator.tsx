@@ -11,7 +11,7 @@ import type { RootStackParamList } from './types';
 const RootStack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
-  const { isLoading } = useAuth();
+  const { isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -24,8 +24,11 @@ export function RootNavigator() {
   return (
     <RootStack.Navigator initialRouteName="Start">
       <RootStack.Screen name="Start" component={StartScreen} options={{ headerShown: false }} />
-      <RootStack.Screen name="Auth" component={AuthStack} options={{ headerShown: false }} />
-      <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+      {user ? (
+        <RootStack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+      ) : (
+        <RootStack.Screen name="Auth" component={AuthStack} options={{ headerShown: false }} />
+      )}
     </RootStack.Navigator>
   );
 }
