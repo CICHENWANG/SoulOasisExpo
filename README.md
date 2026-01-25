@@ -4,78 +4,78 @@
 
 Soul Oasis: An AI-powered mental health ecosystem mobile app.
 
-Soul Oasis：一款面向学生与高压人群的 AI 心理健康支持应用，提供低门槛的情绪倾诉与自我调节工具。
+Soul Oasis: An AI mental health support app designed for students and people under high pressure, providing a low-barrier way to express emotions and practice self-regulation.
 
-## Features / 功能特性
+## Features
 
-- 🤖 **AI 对话**：支持多轮对话，并结合压力值（0-10）作为对话背景提示。
-- 📝 **社区笔记**：笔记发布、列表浏览、详情查看与评论互动。
-- 🔐 **账号与鉴权**：注册/登录后通过 token 访问受保护接口。
+- 🤖 **AI Chat**: supports multi-turn conversations and uses a stress score (0–10) as part of the chat context.
+- 📝 **Community Notes**: publish notes, browse lists, view details, and interact via comments.
+- 🔐 **Accounts & Authentication**: access protected APIs with a token after login.
 
-## Supported Platforms / 支持的平台
+## Supported Platforms
 
-- **iOS**：支持 iOS 模拟器 / 真机（推荐在 iOS Simulator 上运行）。
+- **iOS**: supports iOS Simulator / physical devices (recommended to run on iOS Simulator).
 
-## Quick Start / 快速开始
+## Quick Start
 
-### Prerequisites / 前置要求
+### Prerequisites
 
-- Node.js（建议 v18+）
+- Node.js (v18+ recommended)
 - npm
-- Expo（会在首次运行时自动引导安装所需组件）
-- iOS 开发：Xcode（macOS）
-- 后端运行：Java 11+、Maven、MySQL
+- Expo (required components will be installed automatically on first run)
+- For iOS development: Xcode (macOS)
+- Backend runtime: Java 11+, Maven, MySQL
 
-（可选）后端默认使用 Redis（见 `application.yml`），本地联调建议准备 Redis 服务。
+(Optional) The backend uses Redis by default (see `application.yml`). For local development, it is recommended to have a Redis service available.
 
-### Start Frontend / 启动前端（React Native + Expo）
+### Start Frontend (React Native + Expo)
 
-在项目根目录执行：
+Run in the project root:
 
 ```bash
 npm install
 npm run start
 ```
 
-#### 使用 Expo Go（推荐）
+#### Using Expo Go (Recommended)
 
-1. 在手机上安装 Expo Go
-2. 运行 `npm run start` 后扫描终端中的二维码
+1. Install Expo Go on your phone
+2. Run `npm run start` and scan the QR code shown in the terminal
 
-#### 使用模拟器/开发构建（可选）
+#### Using Simulator / Development Build (Optional)
 
-如果你需要在模拟器上直接运行（需要本机安装 Xcode / Android Studio 环境）：
+If you want to run directly on the simulator (requires Xcode / Android Studio environment on your machine):
 
 ```bash
 npm run ios
 ```
 
-### Start Backend / 启动后端（Spring Boot）
+### Start Backend (Spring Boot)
 
-后端代码位于：
+Backend code is located at:
 
 - `src/services/team_project_backend_1219/`
 
-后端默认端口为 `8080`，数据库与 AI 代理参数可通过环境变量配置（见下文“配置”）。
+The backend default port is `8080`. Database and AI proxy parameters can be configured via environment variables (see “Configuration” below).
 
-使用 Maven Wrapper 启动（推荐，避免本机 Maven 版本差异）：
+Start with Maven Wrapper (recommended to avoid local Maven version differences):
 
 ```bash
 cd src/services/team_project_backend_1219
 ./mvnw spring-boot:run
 ```
 
-启动后服务地址：`http://127.0.0.1:8080`
+After startup, the service is available at: `http://127.0.0.1:8080`
 
-## Configuration / 配置
+## Configuration
 
-### 前端配置（`.env`，可选）
+### Frontend (`.env`, optional)
 
-- **API 基础地址**：`EXPO_PUBLIC_API_BASE_URL`（默认 `http://127.0.0.1:8080`）
-- **鉴权模式**：`EXPO_PUBLIC_AUTH_MODE`（`auto`/`backend`/`mock`）
-- **开发绕过登录**：`EXPO_PUBLIC_AUTH_BYPASS=true`（仅用于开发/演示）
+- **API base URL**: `EXPO_PUBLIC_API_BASE_URL` (default `http://127.0.0.1:8080`)
+- **Auth mode**: `EXPO_PUBLIC_AUTH_MODE` (`auto`/`backend`/`mock`)
+- **Dev auth bypass**: `EXPO_PUBLIC_AUTH_BYPASS=true` (for development/demo only)
 
-示例：
+Example:
 
 ```env
 EXPO_PUBLIC_AUTH_MODE=backend
@@ -83,68 +83,68 @@ EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8080
 EXPO_PUBLIC_AUTH_BYPASS=true
 ```
 
-注意：如果前端跑在真机（非模拟器），`127.0.0.1` 需要替换为你电脑的局域网 IP。
+Note: if the frontend runs on a physical device (not a simulator), `127.0.0.1` must be replaced with your computer’s LAN IP.
 
-### 后端配置（关键环境变量）
+### Backend (key environment variables)
 
-- **MySQL**：`MYSQL_HOST` `MYSQL_PORT` `MYSQL_DB` `MYSQL_USER` `MYSQL_PASSWORD`
-- **Redis**：`REDIS_HOST` `REDIS_PORT` `REDIS_PASSWORD`
-- **AI 代理**：`SOUL_AI_API_KEY` `SOUL_AI_BASE_URL` `SOUL_AI_MODEL`
-- **开发绕过鉴权（可选）**：`SOUL_AUTH_BYPASS=true`
+- **MySQL**: `MYSQL_HOST` `MYSQL_PORT` `MYSQL_DB` `MYSQL_USER` `MYSQL_PASSWORD`
+- **Redis**: `REDIS_HOST` `REDIS_PORT` `REDIS_PASSWORD`
+- **AI proxy**: `SOUL_AI_API_KEY` `SOUL_AI_BASE_URL` `SOUL_AI_MODEL`
+- **Optional auth bypass**: `SOUL_AUTH_BYPASS=true`
 
-后端默认数据库名为 `sosd_blogs`（可通过 `MYSQL_DB` 覆盖），请确保 MySQL 已启动并创建对应数据库。
+The backend default database name is `sosd_blogs` (can be overridden via `MYSQL_DB`). Make sure MySQL is running and the database is created.
 
-## Project Structure / 项目结构（节选）
+## Project Structure (excerpt)
 
 ```text
 SoulOasisExpo/
 ├── README.md
 ├── README_EN.md
 ├── src/
-│   ├── app/                           # 路由与全局 Provider
-│   ├── features/                      # 各业务模块页面
-│   ├── services/                      # API 客户端与后端工程
-│   │   └── team_project_backend_1219/ # Spring Boot 后端
-│   └── ui/                            # UI 组件与主题
-└── docs/screenshots/                  # README 截图
+│   ├── app/                           # navigation and global providers
+│   ├── features/                      # feature modules/screens
+│   ├── services/                      # API clients and backend project
+│   │   └── team_project_backend_1219/ # Spring Boot backend
+│   └── ui/                            # UI components and theme
+└── docs/screenshots/                  # README screenshots
 ```
 
-## 开发指南
+## Development Guide
 
-- **主要页面/业务模块**：`src/features/`（Auth、Chat、Community 等）
-- **API 基础地址解析**：`src/services/apiBaseUrl.ts`
-- **AI 聊天调用**：前端 `src/services/chat/chatApi.ts`，后端 `POST /ai/chat`
-- **鉴权模式切换**：通过 `.env` 中 `EXPO_PUBLIC_AUTH_MODE` / `EXPO_PUBLIC_AUTH_BYPASS` 控制
+- **Main screens/features**: `src/features/` (Auth, Chat, Community, etc.)
+- **API base URL resolver**: `src/services/apiBaseUrl.ts`
+- **AI chat call**: frontend `src/services/chat/chatApi.ts`, backend `POST /ai/chat`
+- **Switch auth modes**: via `.env` `EXPO_PUBLIC_AUTH_MODE` / `EXPO_PUBLIC_AUTH_BYPASS`
 
-## 常见问题
+## Common Issues
 
-- **前端请求不到后端**：确认后端已运行在 `http://127.0.0.1:8080`；真机调试时把 `EXPO_PUBLIC_API_BASE_URL` 改成电脑局域网 IP。
-- **数据库连接失败**：确认 MySQL 已启动、数据库已创建（默认 `sosd_blogs`），并检查 `MYSQL_*` 环境变量。
-- **AI 对话无响应/报错**：确认后端已配置 `SOUL_AI_API_KEY`（以及需要时的 `SOUL_AI_BASE_URL`/`SOUL_AI_MODEL`）。
+- **Frontend cannot reach backend**: confirm the backend is running at `http://127.0.0.1:8080`; when debugging on a physical device, set `EXPO_PUBLIC_API_BASE_URL` to your computer’s LAN IP.
+- **Database connection failure**: confirm MySQL is running, the database exists (default `sosd_blogs`), and check `MYSQL_*` environment variables.
+- **AI chat no response / errors**: confirm the backend has `SOUL_AI_API_KEY` configured (and `SOUL_AI_BASE_URL`/`SOUL_AI_MODEL` if needed).
 
-## License / 许可证
+## License
 
-本项目为课程项目用途；如需开源许可声明，请在仓库根目录添加 `LICENSE` 文件并在此处更新。
+This project is for coursework purposes. If you need an open-source license statement, add a `LICENSE` file to the repository root and update this section.
 
-## Contributing / 贡献
+## Contributing
 
-欢迎通过 Issue 提交问题与改进建议。
+Feel free to submit issues and improvement suggestions via Issues.
 
-## Screenshots / 应用程序的截图
+## Screenshots
 
-### 登录 / 注册
+### Login / Register
 
 <img src="docs/login.png.jpg" alt="Login" style="zoom:30%;" />
 
-### 首页 / 压力值输入
+### Home / Stress Input
 
 <img src="docs/home.png" alt="Home" style="zoom:30%;" />
 
-### AI 对话
+### AI Chat
 
 <img src="docs/chat.png" alt="Chat" style="zoom:30%;" />
 
-### 社区（列表 / 发布 / 详情）
+### Community (Feed / Post / Details)
 
 <img src="docs/community1.png" alt="Community" style="zoom:30%;" />
 
