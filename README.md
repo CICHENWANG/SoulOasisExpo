@@ -1,6 +1,6 @@
 # Soul Oasis
 
-<img src="/Users/nick/Downloads/WechatIMG212.jpg" alt="WechatIMG212" style="zoom:120%;" />
+<img src="docs/WechatIMG212.jpg" alt="WechatIMG212" style="zoom:120%;" />
 
 Soul Oasis: An AI-powered mental health ecosystem mobile app.
 
